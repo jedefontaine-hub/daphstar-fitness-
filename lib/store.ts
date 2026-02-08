@@ -49,7 +49,7 @@ type BookingInput = {
 
 type BookingResult =
   | { ok: true; booking: BookingItem; cancelToken: string }
-  | { ok: false; error: "class_full" | "class_not_found" | "class_cancelled" };
+  | { ok: false; error: "class_full" | "class_not_found" | "class_cancelled" | "already_booked" };
 
 type CancelResult =
   | { ok: true; booking: BookingItem }

@@ -2,82 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { fetchClasses, type ClassSummary } from "@/lib/api";
+import { formatTime, isSameDay, getWeekDates, getMonthDates, getDateKey } from "@/lib/utils/date";
+import { LOCATIONS, getVillageColor } from "@/lib/constants";
+import { LoadingSection } from "@/components/ui/Spinner";
 
 type ViewMode = "week" | "month";
-
-function getWeekDates(baseDate: Date): Date[] {
-  const dates: Date[] = [];
-  const startOfWeek = new Date(baseDate);
-  const day = startOfWeek.getDay();
-  startOfWeek.setDate(startOfWeek.getDate() - day); // Start from Sunday
-
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(startOfWeek);
-    d.setDate(startOfWeek.getDate() + i);
-    dates.push(d);
-  }
-  return dates;
-}
-
-function getMonthDates(baseDate: Date): Date[] {
-  const dates: Date[] = [];
-  const year = baseDate.getFullYear();
-  const month = baseDate.getMonth();
-
-  // Start from the first day of the month
-  const firstDay = new Date(year, month, 1);
-  const startOffset = firstDay.getDay(); // Days to show from previous month
-
-  // Start from the Sunday before (or on) the first day
-  const start = new Date(firstDay);
-  start.setDate(start.getDate() - startOffset);
-
-  // Generate 42 days (6 weeks) to cover any month layout
-  for (let i = 0; i < 42; i++) {
-    const d = new Date(start);
-    d.setDate(start.getDate() + i);
-    dates.push(d);
-  }
-  return dates;
-}
-
-function formatDateKey(date: Date): string {
-  return date.toISOString().split("T")[0] ?? "";
-}
-
-function formatTime(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-}
-
-function isSameDay(a: Date, b: Date): boolean {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
-}
-
-const villageColors: Record<string, { bg: string; text: string; border: string; hover: string }> = {
-  "Sunrise Village": { bg: "bg-amber-100", text: "text-amber-700", border: "border-amber-300", hover: "hover:bg-amber-200" },
-  "Oakwood Gardens": { bg: "bg-emerald-100", text: "text-emerald-700", border: "border-emerald-300", hover: "hover:bg-emerald-200" },
-  "Meadow Creek": { bg: "bg-sky-100", text: "text-sky-700", border: "border-sky-300", hover: "hover:bg-sky-200" },
-  "Lakeside Manor": { bg: "bg-violet-100", text: "text-violet-700", border: "border-violet-300", hover: "hover:bg-violet-200" },
-  "Hillcrest Retirement": { bg: "bg-rose-100", text: "text-rose-700", border: "border-rose-300", hover: "hover:bg-rose-200" },
-};
-
-function getVillageColor(village?: string) {
-  if (!village) return { bg: "bg-violet-100", text: "text-violet-700", border: "border-violet-300", hover: "hover:bg-violet-200" };
-  return villageColors[village] || { bg: "bg-violet-100", text: "text-violet-700", border: "border-violet-300", hover: "hover:bg-violet-200" };
-}
-
-const allLocations = [
-  "Sunrise Village",
-  "Oakwood Gardens",
-  "Meadow Creek",
-  "Lakeside Manor",
-  "Hillcrest Retirement",
-];
 
 export default function CalendarPage() {
   const [classes, setClasses] = useState<ClassSummary[]>([]);
@@ -98,7 +27,7 @@ export default function CalendarPage() {
     const to = new Date(currentDate);
     to.setDate(to.getDate() + 35);
 
-    fetchClasses(formatDateKey(from), formatDateKey(to))
+    fetchClasses(getDateKey(from), getDateKey(to))
       .then((data) => {
         setClasses(data.filter((c) => c.status === "scheduled"));
         setIsLoading(false);
@@ -219,7 +148,7 @@ export default function CalendarPage() {
               className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-base font-medium text-slate-600 transition hover:border-violet-400 focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-200"
             >
               <option value="all">All Locations</option>
-              {allLocations.map((loc) => (
+              {LOCATIONS.map((loc) => (
                 <option key={loc} value={loc}>
                   {loc}
                 </option>
