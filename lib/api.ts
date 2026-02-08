@@ -46,7 +46,15 @@ export async function createBooking(
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
-    throw new Error("Failed to create booking.");
+    const data = (await response.json().catch(() => null)) as { error?: string } | null;
+    const errorMessages: Record<string, string> = {
+      already_booked: "You have already booked this class.",
+      class_full: "This class is now full.",
+      class_not_found: "Class not found.",
+      class_cancelled: "This class has been cancelled.",
+    };
+    const message = data?.error ? (errorMessages[data.error] ?? "Failed to create booking.") : "Failed to create booking.";
+    throw new Error(message);
   }
   return (await response.json()) as {
     booking: BookingResponse;
@@ -98,6 +106,9 @@ export type ClassCreateRequest = {
   startTime: string;
   endTime: string;
   capacity: number;
+  location?: string;
+  recurring?: boolean;
+  repeatWeeks?: number;
 };
 
 export type Attendee = {

@@ -3,6 +3,7 @@ import { isAdminAuthenticated } from "@/lib/auth";
 import {
   countActiveBookings,
   createClass,
+  createRecurringClasses,
   listClasses,
   type ClassInput,
 } from "@/lib/store";
@@ -43,12 +44,28 @@ export async function POST(request: Request) {
   const startTime = body?.startTime ?? body?.start_time;
   const endTime = body?.endTime ?? body?.end_time;
   const capacity = body?.capacity;
+  const location = body?.location;
+  const recurring = body?.recurring === true;
+  const repeatWeeks = typeof body?.repeatWeeks === "number" ? body.repeatWeeks : 1;
 
   if (!title || !startTime || !endTime || typeof capacity !== "number") {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });
   }
 
-  const input: ClassInput = { title, startTime, endTime, capacity };
+  const input: ClassInput = { title, startTime, endTime, capacity, location };
+
+  if (recurring && repeatWeeks > 1) {
+    const createdClasses = createRecurringClasses({ ...input, repeatWeeks });
+    return NextResponse.json(
+      { 
+        ids: createdClasses.map(c => c.id), 
+        count: createdClasses.length,
+        message: `Created ${createdClasses.length} recurring classes`
+      },
+      { status: 201 }
+    );
+  }
+
   const created = createClass(input);
 
   return NextResponse.json(

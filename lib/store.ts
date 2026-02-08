@@ -26,6 +26,11 @@ type CustomerItem = {
   email: string;
   password: string;
   retirementVillage?: string;
+  birthdate?: string;
+  phone?: string;
+  address?: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
   createdAt: string;
 };
 
@@ -121,6 +126,12 @@ const seedClasses: ClassItem[] = [
 ];
 
 const seedBookings: BookingItem[] = [
+  // Upcoming class bookings (cls-1: Strength Fundamentals)
+  { id: "bk-f1", classId: "cls-1", customerName: "Harold Chen", customerEmail: "harold@example.com", retirementVillage: "Oakwood Gardens", status: "active", cancelToken: "ct-f1", createdAt: "2026-02-07T09:00:00Z" },
+  { id: "bk-f2", classId: "cls-1", customerName: "Dorothy Martinez", customerEmail: "dorothy@example.com", retirementVillage: "Sunrise Village", status: "active", cancelToken: "ct-f2", createdAt: "2026-02-07T10:00:00Z" },
+  { id: "bk-f3", classId: "cls-1", customerName: "Robert Thompson", customerEmail: "robert@example.com", retirementVillage: "Meadow Creek", status: "active", cancelToken: "ct-f3", createdAt: "2026-02-07T11:00:00Z" },
+  { id: "bk-f4", classId: "cls-1", customerName: "Betty Johnson", customerEmail: "betty@example.com", retirementVillage: "Oakwood Gardens", status: "active", cancelToken: "ct-f4", createdAt: "2026-02-07T12:00:00Z" },
+  { id: "bk-f5", classId: "cls-1", customerName: "William Davis", customerEmail: "william@example.com", retirementVillage: "Lakeside Manor", status: "active", cancelToken: "ct-f5", createdAt: "2026-02-07T13:00:00Z" },
   // Margaret - 4 sessions (Sunrise Village)
   { id: "bk-1", classId: "cls-past-1", customerName: "Margaret Wilson", customerEmail: "margaret@example.com", retirementVillage: "Sunrise Village", status: "active", cancelToken: "ct-1", createdAt: "2026-01-14T09:00:00Z" },
   { id: "bk-2", classId: "cls-past-2", customerName: "Margaret Wilson", customerEmail: "margaret@example.com", retirementVillage: "Sunrise Village", status: "active", cancelToken: "ct-2", createdAt: "2026-01-19T09:00:00Z" },
@@ -207,6 +218,18 @@ export function createBooking(input: BookingInput): BookingResult {
     return { ok: false, error: "class_full" };
   }
 
+  // Check for duplicate booking (same email, same class)
+  const normalizedEmail = input.customerEmail.toLowerCase().trim();
+  const existingBooking = store.bookings.find(
+    (b) =>
+      b.classId === input.classId &&
+      b.customerEmail.toLowerCase() === normalizedEmail &&
+      b.status === "active"
+  );
+  if (existingBooking) {
+    return { ok: false, error: "already_booked" };
+  }
+
   const booking: BookingItem = {
     id: crypto.randomUUID(),
     classId: input.classId,
@@ -256,10 +279,43 @@ export function createClass(input: ClassInput): ClassItem {
     startTime: input.startTime,
     endTime: input.endTime,
     capacity: input.capacity,
+    location: input.location,
     status: "scheduled",
   };
   store.classes.push(newClass);
   return newClass;
+}
+
+export type RecurringClassInput = ClassInput & {
+  repeatWeeks: number;
+};
+
+export function createRecurringClasses(input: RecurringClassInput): ClassItem[] {
+  const store = getStore();
+  const createdClasses: ClassItem[] = [];
+  
+  const startDate = new Date(input.startTime);
+  const endDate = new Date(input.endTime);
+  const durationMs = endDate.getTime() - startDate.getTime();
+  
+  for (let week = 0; week < input.repeatWeeks; week++) {
+    const weekStartTime = new Date(startDate.getTime() + week * 7 * 24 * 60 * 60 * 1000);
+    const weekEndTime = new Date(weekStartTime.getTime() + durationMs);
+    
+    const newClass: ClassItem = {
+      id: crypto.randomUUID(),
+      title: input.title,
+      startTime: weekStartTime.toISOString(),
+      endTime: weekEndTime.toISOString(),
+      capacity: input.capacity,
+      location: input.location,
+      status: "scheduled",
+    };
+    store.classes.push(newClass);
+    createdClasses.push(newClass);
+  }
+  
+  return createdClasses;
 }
 
 export function updateClass(
@@ -412,6 +468,11 @@ export type CustomerPublic = {
   name: string;
   email: string;
   retirementVillage?: string;
+  birthdate?: string;
+  phone?: string;
+  address?: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
 };
 
 export type RegisterInput = {
@@ -461,6 +522,11 @@ export function registerCustomer(input: RegisterInput): RegisterResult {
       name: customer.name,
       email: customer.email,
       retirementVillage: customer.retirementVillage,
+      birthdate: customer.birthdate,
+      phone: customer.phone,
+      address: customer.address,
+      emergencyContactName: customer.emergencyContactName,
+      emergencyContactPhone: customer.emergencyContactPhone,
     },
   };
 }
@@ -484,6 +550,11 @@ export function loginCustomer(email: string, password: string): LoginResult {
       name: customer.name,
       email: customer.email,
       retirementVillage: customer.retirementVillage,
+      birthdate: customer.birthdate,
+      phone: customer.phone,
+      address: customer.address,
+      emergencyContactName: customer.emergencyContactName,
+      emergencyContactPhone: customer.emergencyContactPhone,
     },
   };
 }
@@ -501,6 +572,70 @@ export function getCustomerById(id: string): CustomerPublic | null {
     name: customer.name,
     email: customer.email,
     retirementVillage: customer.retirementVillage,
+    birthdate: customer.birthdate,
+    phone: customer.phone,
+    address: customer.address,
+    emergencyContactName: customer.emergencyContactName,
+    emergencyContactPhone: customer.emergencyContactPhone,
+  };
+}
+
+export type ProfileUpdateInput = {
+  name?: string;
+  email?: string;
+  retirementVillage?: string;
+  birthdate?: string;
+  phone?: string;
+  address?: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+};
+
+export type ProfileUpdateResult =
+  | { ok: true; customer: CustomerPublic }
+  | { ok: false; error: "not_found" | "email_exists" };
+
+export function updateCustomerProfile(id: string, input: ProfileUpdateInput): ProfileUpdateResult {
+  const store = getStore();
+  const customer = store.customers.find((c) => c.id === id);
+  
+  if (!customer) {
+    return { ok: false, error: "not_found" };
+  }
+  
+  // Check if email is being changed and if it's already taken
+  if (input.email && input.email.toLowerCase() !== customer.email.toLowerCase()) {
+    const normalizedNewEmail = input.email.toLowerCase().trim();
+    const emailExists = store.customers.find(
+      (c) => c.id !== id && c.email.toLowerCase() === normalizedNewEmail
+    );
+    if (emailExists) {
+      return { ok: false, error: "email_exists" };
+    }
+    customer.email = normalizedNewEmail;
+  }
+  
+  if (input.name !== undefined) customer.name = input.name.trim();
+  if (input.retirementVillage !== undefined) customer.retirementVillage = input.retirementVillage;
+  if (input.birthdate !== undefined) customer.birthdate = input.birthdate;
+  if (input.phone !== undefined) customer.phone = input.phone;
+  if (input.address !== undefined) customer.address = input.address;
+  if (input.emergencyContactName !== undefined) customer.emergencyContactName = input.emergencyContactName;
+  if (input.emergencyContactPhone !== undefined) customer.emergencyContactPhone = input.emergencyContactPhone;
+  
+  return {
+    ok: true,
+    customer: {
+      id: customer.id,
+      name: customer.name,
+      email: customer.email,
+      retirementVillage: customer.retirementVillage,
+      birthdate: customer.birthdate,
+      phone: customer.phone,
+      address: customer.address,
+      emergencyContactName: customer.emergencyContactName,
+      emergencyContactPhone: customer.emergencyContactPhone,
+    },
   };
 }
 
@@ -634,4 +769,35 @@ export function getCustomerDashboard(email: string): DashboardData {
       rank,
     },
   };
+}
+
+// ---------- Birthday Functions ----------
+
+export type BirthdayCustomer = {
+  id: string;
+  name: string;
+  email: string;
+};
+
+export function getCustomersWithBirthdayToday(): BirthdayCustomer[] {
+  const store = getStore();
+  const today = new Date();
+  const todayMonth = today.getMonth() + 1; // 1-indexed
+  const todayDay = today.getDate();
+
+  return store.customers
+    .filter((customer) => {
+      if (!customer.birthdate) return false;
+      // birthdate format: YYYY-MM-DD
+      const parts = customer.birthdate.split("-");
+      if (parts.length !== 3) return false;
+      const birthMonth = parseInt(parts[1], 10);
+      const birthDay = parseInt(parts[2], 10);
+      return birthMonth === todayMonth && birthDay === todayDay;
+    })
+    .map((customer) => ({
+      id: customer.id,
+      name: customer.name,
+      email: customer.email,
+    }));
 }
