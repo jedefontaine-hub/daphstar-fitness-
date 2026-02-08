@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { listBookingsByEmail } from "@/lib/store";
+import { listBookingsByEmail } from "@/lib/db-store";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -9,6 +9,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "email_required" }, { status: 400 });
   }
 
-  const bookings = listBookingsByEmail(email);
+  const bookings = await listBookingsByEmail(email);
   return NextResponse.json({ bookings });
 }

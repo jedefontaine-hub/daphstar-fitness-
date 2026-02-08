@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/auth";
-import { listAttendees } from "@/lib/store";
+import { listAttendees } from "@/lib/db-store";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -10,6 +10,6 @@ export async function GET(_request: Request, context: Params) {
   }
 
   const { id } = await context.params;
-  const attendees = listAttendees(id);
+  const attendees = await listAttendees(id);
   return NextResponse.json({ attendees });
 }

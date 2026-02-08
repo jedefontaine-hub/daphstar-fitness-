@@ -387,6 +387,95 @@ erDiagram
 - Option A gets a mobile-friendly web app live fastest.
 - Option C is best if a native app is required immediately.
 
+## 23.1) Implementation Details (Current)
+
+### Database
+- **Provider**: SQLite (local file-based database)
+- **ORM**: Prisma 6.x
+- **Location**: `prisma/dev.db`
+
+This setup provides:
+- Zero-cost persistent storage
+- Data survives server restarts
+- Easy backup (single file)
+- No external services required
+
+### Database Schema (Prisma)
+```prisma
+model Class {
+  id        String    @id @default(cuid())
+  title     String
+  startTime DateTime
+  endTime   DateTime
+  capacity  Int
+  location  String?
+  status    String    @default("scheduled")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  bookings  Booking[]
+}
+
+model Booking {
+  id                String    @id @default(cuid())
+  classId           String
+  class             Class     @relation(fields: [classId], references: [id])
+  customerId        String?
+  customer          Customer? @relation(fields: [customerId], references: [id])
+  customerName      String
+  customerEmail     String
+  retirementVillage String?
+  status            String    @default("active")
+  cancelToken       String    @unique @default(cuid())
+  createdAt         DateTime  @default(now())
+  cancelledAt       DateTime?
+}
+
+model Customer {
+  id                    String    @id @default(cuid())
+  name                  String
+  email                 String    @unique
+  password              String
+  retirementVillage     String?
+  birthdate             DateTime?
+  phone                 String?
+  address               String?
+  emergencyContactName  String?
+  emergencyContactPhone String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  bookings              Booking[]
+}
+```
+
+### Database Commands
+```bash
+# Run migrations (create/update tables)
+npm run db:migrate
+
+# Seed database with sample data
+npm run db:seed
+
+# Reset database (delete all data and re-seed)
+npm run db:reset
+```
+
+### Data Layer Architecture
+- `lib/db.ts` - Prisma client singleton
+- `lib/db-store.ts` - Async database operations (replaces in-memory store)
+- All API routes use async functions from `lib/db-store.ts`
+
+### Migration to Production Database
+When deploying to production, update the `DATABASE_URL` in `.env`:
+```bash
+# Local SQLite (default)
+DATABASE_URL="file:./dev.db"
+
+# PostgreSQL (production)
+DATABASE_URL="postgresql://user:pass@host:5432/dbname"
+```
+
+Then update `prisma/schema.prisma` provider and run migrations.
+
 ## 24) Project Timeline Estimate
 Assuming a small MVP with one developer and rapid feedback loops.
 

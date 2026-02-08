@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import { cancelBooking } from "@/lib/api";
+import { ConfirmModal } from "@/components/ui/Modal";
+import { useToast } from "@/components/ui/Toast";
+import { PageTransition } from "@/components/ui/PageTransition";
 
 type Booking = {
   id: string;
@@ -39,15 +42,18 @@ function isUpcoming(iso: string): boolean {
 }
 
 export default function MyBookingsPage() {
+  const toast = useToast();
   const [email, setEmail] = useState("");
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [status, setStatus] = useState<LookupStatus>({ state: "idle" });
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [bookingToCancel, setBookingToCancel] = useState<Booking | null>(null);
 
   const handleLookup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) {
-      setStatus({ state: "error", message: "Please enter your email address." });
+      toast.error("Please enter your email address.");
       return;
     }
 
@@ -59,28 +65,37 @@ export default function MyBookingsPage() {
       setBookings(data.bookings);
       setStatus({ state: "ready" });
     } catch {
+      toast.error("Unable to look up bookings. Try again.");
       setStatus({ state: "error", message: "Unable to look up bookings. Try again." });
     }
   };
 
-  const handleCancel = async (booking: Booking) => {
-    if (!confirm(`Cancel your booking for ${booking.classTitle}?`)) return;
+  const openCancelModal = (booking: Booking) => {
+    setBookingToCancel(booking);
+    setCancelModalOpen(true);
+  };
+
+  const handleCancel = async () => {
+    if (!bookingToCancel) return;
     
-    setCancellingId(booking.id);
+    setCancelModalOpen(false);
+    setCancellingId(bookingToCancel.id);
     try {
-      await cancelBooking(booking.cancelToken);
+      await cancelBooking(bookingToCancel.cancelToken);
       // Update the booking in the list
       setBookings((prev) =>
         prev.map((b) =>
-          b.id === booking.id
+          b.id === bookingToCancel.id
             ? { ...b, bookingStatus: "cancelled" as const, cancelledAt: new Date().toISOString() }
             : b
         )
       );
+      toast.success("Booking cancelled successfully");
     } catch {
-      alert("Failed to cancel booking. Please try again.");
+      toast.error("Failed to cancel booking. Please try again.");
     } finally {
       setCancellingId(null);
+      setBookingToCancel(null);
     }
   };
 
@@ -217,7 +232,7 @@ export default function MyBookingsPage() {
                             </div>
                           </div>
                           <button
-                            onClick={() => handleCancel(booking)}
+                            onClick={() => openCancelModal(booking)}
                             disabled={cancellingId === booking.id}
                             className="rounded-full border-2 border-red-200 bg-red-50 px-6 py-3 text-base font-semibold text-red-600 transition hover:border-red-300 hover:bg-red-100 disabled:opacity-50"
                           >
@@ -294,6 +309,17 @@ export default function MyBookingsPage() {
           </>
         )}
       </main>
+
+      <ConfirmModal
+        isOpen={cancelModalOpen}
+        onClose={() => setCancelModalOpen(false)}
+        onConfirm={handleCancel}
+        title="Cancel Booking?"
+        message={`Are you sure you want to cancel your booking for ${bookingToCancel?.classTitle || "this class"}?`}
+        confirmLabel="Yes, Cancel"
+        cancelLabel="Keep Booking"
+        variant="danger"
+      />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { sendCancellationConfirmation } from "@/lib/email";
-import { cancelBooking, getClassById } from "@/lib/store";
+import { cancelBooking, getClassById } from "@/lib/db-store";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
@@ -10,13 +10,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });
   }
 
-  const result = cancelBooking(cancelToken);
+  const result = await cancelBooking(cancelToken);
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: 404 });
   }
 
   // Send cancellation email (non-blocking)
-  const classItem = getClassById(result.booking.classId);
+  const classItem = await getClassById(result.booking.classId);
   if (classItem) {
     sendCancellationConfirmation({
       customerEmail: result.booking.customerEmail,

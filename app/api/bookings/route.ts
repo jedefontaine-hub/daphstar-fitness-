@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { sendBookingConfirmation } from "@/lib/email";
-import { createBooking, getClassById } from "@/lib/store";
+import { createBooking, getClassById } from "@/lib/db-store";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });
   }
 
-  const result = createBooking({ classId, customerName, customerEmail, retirementVillage });
+  const result = await createBooking({ classId, customerName, customerEmail, retirementVillage });
   if (!result.ok) {
     const statusMap: Record<string, number> = {
       class_full: 409,
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
   const booking = result.booking;
 
   // Send confirmation email (non-blocking)
-  const classItem = getClassById(classId);
+  const classItem = await getClassById(classId);
   if (classItem) {
     sendBookingConfirmation({
       customerEmail: booking.customerEmail,

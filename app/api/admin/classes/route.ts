@@ -6,7 +6,7 @@ import {
   createRecurringClasses,
   listClasses,
   type ClassInput,
-} from "@/lib/store";
+} from "@/lib/db-store";
 
 export async function GET(request: Request) {
   if (!(await isAdminAuthenticated())) {
@@ -17,19 +17,22 @@ export async function GET(request: Request) {
   const from = searchParams.get("from") ?? undefined;
   const to = searchParams.get("to") ?? undefined;
 
-  const classes = listClasses(from, to).map((item) => {
-    const booked = countActiveBookings(item.id);
-    return {
-      id: item.id,
-      title: item.title,
-      startTime: item.startTime,
-      endTime: item.endTime,
-      capacity: item.capacity,
-      booked,
-      spotsLeft: Math.max(item.capacity - booked, 0),
-      status: item.status,
-    };
-  });
+  const rawClasses = await listClasses(from, to);
+  const classes = await Promise.all(
+    rawClasses.map(async (item) => {
+      const booked = await countActiveBookings(item.id);
+      return {
+        id: item.id,
+        title: item.title,
+        startTime: item.startTime,
+        endTime: item.endTime,
+        capacity: item.capacity,
+        booked,
+        spotsLeft: Math.max(item.capacity - booked, 0),
+        status: item.status,
+      };
+    })
+  );
 
   return NextResponse.json({ classes });
 }
@@ -55,7 +58,7 @@ export async function POST(request: Request) {
   const input: ClassInput = { title, startTime, endTime, capacity, location };
 
   if (recurring && repeatWeeks > 1) {
-    const createdClasses = createRecurringClasses({ ...input, repeatWeeks });
+    const createdClasses = await createRecurringClasses({ ...input, repeatWeeks });
     return NextResponse.json(
       { 
         ids: createdClasses.map(c => c.id), 
@@ -66,7 +69,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const created = createClass(input);
+  const created = await createClass(input);
 
   return NextResponse.json(
     { id: created.id, status: created.status },

@@ -6,7 +6,7 @@ import {
   getClassById,
   listAttendees,
   updateClass,
-} from "@/lib/store";
+} from "@/lib/db-store";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -16,11 +16,11 @@ export async function GET(_request: Request, context: Params) {
   }
 
   const { id } = await context.params;
-  const classItem = getClassById(id);
+  const classItem = await getClassById(id);
   if (!classItem) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
-  const booked = countActiveBookings(id);
+  const booked = await countActiveBookings(id);
   return NextResponse.json({
     id: classItem.id,
     title: classItem.title,
@@ -51,7 +51,7 @@ export async function PUT(request: Request, context: Params) {
     updates.endTime = body.endTime ?? body.end_time;
   if (body.capacity !== undefined) updates.capacity = body.capacity;
 
-  const updated = updateClass(id, updates);
+  const updated = await updateClass(id, updates);
   if (!updated) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
@@ -64,7 +64,7 @@ export async function DELETE(_request: Request, context: Params) {
   }
 
   const { id } = await context.params;
-  const cancelled = cancelClass(id);
+  const cancelled = await cancelClass(id);
   if (!cancelled) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }

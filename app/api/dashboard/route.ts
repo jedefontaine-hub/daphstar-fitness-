@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { getCustomerDashboard } from "@/lib/store";
+import { getCustomerDashboard } from "@/lib/db-store";
 
 export async function GET() {
   const cookieStore = await cookies();
@@ -16,7 +16,7 @@ export async function GET() {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
 
-    const dashboard = getCustomerDashboard(session.email);
+    const dashboard = await getCustomerDashboard(session.email);
     return NextResponse.json({
       customer: {
         id: session.customerId,
