@@ -118,7 +118,7 @@ export default function Home() {
                             <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
                               {/* Time column */}
                               <div className="flex sm:block items-center gap-3 sm:w-16 sm:flex-shrink-0 sm:text-center">
-                                <p className="text-lg font-bold text-blue-500" suppressHydrationWarning>
+                                <p className="text-lg font-bold text-teal-600" suppressHydrationWarning>
                                   {formatTime(item.startTime)}
                                 </p>
                                 <p className="text-xs text-gray-400">
@@ -149,13 +149,13 @@ export default function Home() {
                               </div>
                             </div>
                             
-                            {/* Action button - full width on mobile - full width on mobile */}
+                            {/* Action button - full width on mobile */}
                             <a
                               href={isFull ? "#" : `/booking?${query}`}
                               className={`mt-3 sm:mt-0 flex items-center justify-center gap-2 rounded-full px-5 py-3 sm:py-2.5 text-sm font-semibold transition w-full sm:w-auto ${
                                 isFull 
                                   ? "bg-gray-200 text-gray-400 cursor-not-allowed" 
-                                  : "bg-blue-500 text-white hover:bg-blue-600 shadow-sm"
+                                  : "bg-teal-600 text-white hover:bg-teal-700 shadow-sm"
                               }`}
                               aria-disabled={isFull}
                               onClick={(e) => isFull && e.preventDefault()}
