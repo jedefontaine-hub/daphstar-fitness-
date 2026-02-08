@@ -11,9 +11,9 @@ const sizeClasses = {
 };
 
 const colorClasses = {
-  blue: "border-blue-500",
+  blue: "border-teal-500",
   white: "border-white",
-  gray: "border-gray-500",
+  gray: "border-slate-400",
 };
 
 export function Spinner({ size = "md", color = "blue", className = "" }: SpinnerProps) {
@@ -30,10 +30,10 @@ export function Spinner({ size = "md", color = "blue", className = "" }: Spinner
 
 export function LoadingPage({ message = "Loading..." }: { message?: string }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50">
+    <div className="flex min-h-screen items-center justify-center">
       <div className="text-center">
         <Spinner size="lg" />
-        <p className="mt-4 text-gray-600">{message}</p>
+        <p className="mt-4 text-slate-400">{message}</p>
       </div>
     </div>
   );
@@ -44,7 +44,7 @@ export function LoadingSection({ message }: { message?: string }) {
     <div className="flex items-center justify-center py-12">
       <div className="text-center">
         <Spinner />
-        {message && <p className="mt-2 text-sm text-gray-500">{message}</p>}
+        {message && <p className="mt-2 text-sm text-slate-400">{message}</p>}
       </div>
     </div>
   );

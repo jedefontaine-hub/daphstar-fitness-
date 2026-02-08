@@ -7,7 +7,7 @@ interface SkeletonProps {
 export function Skeleton({ className = "" }: SkeletonProps) {
   return (
     <div
-      className={`animate-pulse rounded bg-gray-200 ${className}`}
+      className={`animate-pulse rounded bg-white/10 ${className}`}
       aria-hidden="true"
     />
   );
@@ -42,7 +42,7 @@ export function SkeletonButton({ className = "" }: SkeletonProps) {
 // Class card skeleton for home page
 export function SkeletonClassCard() {
   return (
-    <div className="flex items-center gap-4 rounded-lg bg-white p-4 shadow-sm">
+    <div className="flex items-center gap-4 rounded-lg bg-white/8 border border-white/10 p-4">
       {/* Time column */}
       <div className="w-16 flex-shrink-0 text-center">
         <Skeleton className="mx-auto h-6 w-12 mb-1" />
@@ -90,7 +90,7 @@ export function SkeletonStats() {
   return (
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
       {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className="rounded-xl bg-white p-4 shadow-sm">
+        <div key={i} className="rounded-xl bg-white/8 border border-white/10 p-4">
           <Skeleton className="h-4 w-20 mb-2" />
           <Skeleton className="h-8 w-12" />
         </div>
@@ -102,7 +102,7 @@ export function SkeletonStats() {
 // Booking card skeleton
 export function SkeletonBookingCard() {
   return (
-    <div className="rounded-xl bg-white p-4 shadow-sm">
+    <div className="rounded-xl bg-white/8 border border-white/10 p-4">
       <div className="flex items-start justify-between">
         <div className="space-y-2 flex-1">
           <Skeleton className="h-5 w-3/4" />
@@ -120,7 +120,7 @@ export function SkeletonLeaderboard({ entries = 5 }: { entries?: number }) {
   return (
     <div className="space-y-2">
       {Array.from({ length: entries }).map((_, i) => (
-        <div key={i} className="flex items-center gap-3 rounded-lg bg-gray-50 p-3">
+        <div key={i} className="flex items-center gap-3 rounded-lg bg-white/5 p-3">
           <Skeleton className="h-8 w-8 rounded-full" />
           <div className="flex-1 space-y-1">
             <Skeleton className="h-4 w-32" />

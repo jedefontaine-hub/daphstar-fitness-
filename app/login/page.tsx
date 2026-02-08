@@ -74,22 +74,22 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-grid px-6 py-10">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-teal-900 px-6 py-10">
       {/* Soft decorative shapes */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -left-40 -top-40 h-80 w-80 rounded-full bg-violet-200/40 blur-[100px]" />
-        <div className="absolute -right-40 top-1/3 h-80 w-80 rounded-full bg-purple-200/30 blur-[100px]" />
+        <div className="absolute -left-40 -top-40 h-80 w-80 rounded-full bg-teal-500/20 blur-[100px]" />
+        <div className="absolute -right-40 top-1/3 h-80 w-80 rounded-full bg-cyan-500/10 blur-[100px]" />
       </div>
 
       <div className="relative mx-auto max-w-md">
         <div className="mb-8 text-center">
-          <a href="/" className="text-sm font-semibold uppercase tracking-[0.2em] text-violet-600 hover:text-violet-700 transition">
+          <a href="/" className="text-sm font-semibold uppercase tracking-[0.2em] text-teal-400 hover:text-teal-300 transition">
             Daphstar Fitness
           </a>
-          <h1 className="mt-4 gradient-text text-3xl font-bold text-slate-800">
+          <h1 className="mt-4 gradient-text text-3xl font-bold">
             {mode === "login" ? "Welcome Back" : "Join Us"}
           </h1>
-          <p className="mt-3 text-lg text-slate-600">
+          <p className="mt-3 text-lg text-slate-400">
             {mode === "login"
               ? "Sign in to book classes and manage your bookings."
               : "Create an account to start booking fitness classes."}
@@ -98,13 +98,13 @@ export default function LoginPage() {
 
         <div className="glass-card rounded-3xl p-8">
           {/* Tab toggle */}
-          <div className="mb-6 flex rounded-xl border border-slate-200 bg-slate-100 p-1">
+          <div className="mb-6 flex rounded-xl border border-white/10 bg-white/5 p-1">
             <button
               onClick={() => setMode("login")}
               className={`flex-1 rounded-lg py-3 text-base font-medium transition ${
                 mode === "login"
-                  ? "bg-white text-violet-700 shadow-sm"
-                  : "text-slate-500 hover:text-slate-700"
+                  ? "bg-teal-500 text-white shadow-sm"
+                  : "text-slate-400 hover:text-white"
               }`}
             >
               Sign In
@@ -113,8 +113,8 @@ export default function LoginPage() {
               onClick={() => setMode("register")}
               className={`flex-1 rounded-lg py-3 text-base font-medium transition ${
                 mode === "register"
-                  ? "bg-white text-violet-700 shadow-sm"
-                  : "text-slate-500 hover:text-slate-700"
+                  ? "bg-teal-500 text-white shadow-sm"
+                  : "text-slate-400 hover:text-white"
               }`}
             >
               Register
@@ -123,7 +123,7 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {mode === "register" && (
-              <label className="grid gap-2 text-base font-medium text-slate-700">
+              <label className="grid gap-2 text-base font-medium text-slate-300">
                 Full Name
                 <input
                   type="text"
@@ -135,7 +135,7 @@ export default function LoginPage() {
               </label>
             )}
 
-            <label className="grid gap-2 text-base font-medium text-slate-700">
+            <label className="grid gap-2 text-base font-medium text-slate-300">
               Email
               <input
                 type="email"
@@ -146,7 +146,7 @@ export default function LoginPage() {
               />
             </label>
 
-            <label className="grid gap-2 text-base font-medium text-slate-700">
+            <label className="grid gap-2 text-base font-medium text-slate-300">
               Password
               <input
                 type="password"
@@ -158,7 +158,7 @@ export default function LoginPage() {
             </label>
 
             {mode === "register" && (
-              <label className="grid gap-2 text-base font-medium text-slate-700">
+              <label className="grid gap-2 text-base font-medium text-slate-300">
                 Retirement Village
                 <select
                   value={retirementVillage}
@@ -177,7 +177,7 @@ export default function LoginPage() {
             )}
 
             {status.state === "error" && (
-              <div className="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-base text-red-700">
+              <div className="rounded-xl border border-red-500/30 bg-red-500/20 px-5 py-4 text-base text-red-300">
                 {status.message}
               </div>
             )}
@@ -201,14 +201,14 @@ export default function LoginPage() {
           </form>
 
           {mode === "login" && (
-            <p className="mt-6 text-center text-base text-slate-500">
-              Demo: <code className="text-violet-600 bg-violet-50 px-2 py-1 rounded">margaret@example.com</code> / <code className="text-violet-600 bg-violet-50 px-2 py-1 rounded">password123</code>
+            <p className="mt-6 text-center text-base text-slate-400">
+              Demo: <code className="text-teal-400 bg-teal-500/20 px-2 py-1 rounded">margaret@example.com</code> / <code className="text-teal-400 bg-teal-500/20 px-2 py-1 rounded">password123</code>
             </p>
           )}
         </div>
 
-        <p className="mt-6 text-center text-base text-slate-600">
-          <a href="/" className="text-violet-600 hover:text-violet-700 transition font-medium">
+        <p className="mt-6 text-center text-base text-slate-400">
+          <a href="/" className="text-teal-400 hover:text-teal-300 transition font-medium">
             ← Back to schedule
           </a>
         </p>

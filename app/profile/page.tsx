@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { BottomNav } from "@/components/BottomNav";
 
 interface ProfileData {
   id: string;
@@ -113,18 +114,18 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#f5f5f5] flex items-center justify-center">
-        <div className="text-gray-600 text-lg">Loading profile...</div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-teal-900 flex items-center justify-center">
+        <div className="text-slate-300 text-lg">Loading profile...</div>
       </div>
     );
   }
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-[#f5f5f5] flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-teal-900 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-600 text-lg mb-4">Please log in to view your profile.</p>
-          <Link href="/login?redirect=/profile" className="text-[#2196F3] hover:underline font-semibold">
+          <p className="text-slate-300 text-lg mb-4">Please log in to view your profile.</p>
+          <Link href="/login?redirect=/profile" className="text-teal-400 hover:underline font-semibold">
             Go to Login
           </Link>
         </div>
@@ -133,17 +134,17 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f5f5]">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-teal-900 pb-20">
       {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-10">
+      <header className="bg-slate-900/80 border-b border-white/10 backdrop-blur-xl sticky top-0 z-10">
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="text-gray-600 hover:text-[#2196F3] flex items-center gap-2">
+          <Link href="/" className="text-slate-300 hover:text-teal-400 flex items-center gap-2">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
             Back
           </Link>
-          <h1 className="text-xl font-bold text-gray-800">My Profile</h1>
+          <h1 className="text-xl font-bold text-white">My Profile</h1>
           <div className="w-16"></div>
         </div>
       </header>
@@ -152,7 +153,7 @@ export default function ProfilePage() {
       <main className="max-w-3xl mx-auto px-4 py-6">
         {/* Success Message */}
         {success && (
-          <div className="mb-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center gap-2">
+          <div className="mb-6 bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 px-4 py-3 rounded-lg flex items-center gap-2">
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
             </svg>
@@ -162,16 +163,16 @@ export default function ProfilePage() {
 
         {/* Error Message */}
         {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          <div className="mb-6 bg-red-500/20 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Personal Information */}
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <svg className="w-5 h-5 text-[#2196F3]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="glass-card rounded-xl p-6">
+            <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <svg className="w-5 h-5 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
               Personal Information
@@ -179,7 +180,7 @@ export default function ProfilePage() {
             
             <div className="space-y-4">
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="name" className="block text-sm font-medium text-slate-300 mb-1">
                   Full Name *
                 </label>
                 <input
@@ -188,12 +189,12 @@ export default function ProfilePage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196F3] focus:border-transparent text-lg"
+                  className="input-dark w-full px-4 py-3 rounded-lg text-lg"
                 />
               </div>
 
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-1">
                   Email Address *
                 </label>
                 <input
@@ -202,12 +203,12 @@ export default function ProfilePage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196F3] focus:border-transparent text-lg"
+                  className="input-dark w-full px-4 py-3 rounded-lg text-lg"
                 />
               </div>
 
               <div>
-                <label htmlFor="birthdate" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="birthdate" className="block text-sm font-medium text-slate-300 mb-1">
                   Date of Birth
                 </label>
                 <input
@@ -215,12 +216,12 @@ export default function ProfilePage() {
                   id="birthdate"
                   value={birthdate}
                   onChange={(e) => setBirthdate(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196F3] focus:border-transparent text-lg"
+                  className="input-dark w-full px-4 py-3 rounded-lg text-lg"
                 />
               </div>
 
               <div>
-                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="phone" className="block text-sm font-medium text-slate-300 mb-1">
                   Phone Number
                 </label>
                 <input
@@ -229,16 +230,16 @@ export default function ProfilePage() {
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="e.g., 0412 345 678"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196F3] focus:border-transparent text-lg"
+                  className="input-dark w-full px-4 py-3 rounded-lg text-lg"
                 />
               </div>
             </div>
           </div>
 
           {/* Address */}
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <svg className="w-5 h-5 text-[#2196F3]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="glass-card rounded-xl p-6">
+            <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <svg className="w-5 h-5 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
@@ -247,7 +248,7 @@ export default function ProfilePage() {
             
             <div className="space-y-4">
               <div>
-                <label htmlFor="retirementVillage" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="retirementVillage" className="block text-sm font-medium text-slate-300 mb-1">
                   Retirement Village *
                 </label>
                 <input
@@ -256,12 +257,12 @@ export default function ProfilePage() {
                   value={retirementVillage}
                   onChange={(e) => setRetirementVillage(e.target.value)}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196F3] focus:border-transparent text-lg"
+                  className="input-dark w-full px-4 py-3 rounded-lg text-lg"
                 />
               </div>
 
               <div>
-                <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="address" className="block text-sm font-medium text-slate-300 mb-1">
                   Street Address
                 </label>
                 <textarea
@@ -270,16 +271,16 @@ export default function ProfilePage() {
                   onChange={(e) => setAddress(e.target.value)}
                   rows={2}
                   placeholder="e.g., Unit 42, 123 Example Street, Suburb VIC 3000"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196F3] focus:border-transparent text-lg resize-none"
+                  className="input-dark w-full px-4 py-3 rounded-lg text-lg resize-none"
                 />
               </div>
             </div>
           </div>
 
           {/* Emergency Contact */}
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <svg className="w-5 h-5 text-[#FF5722]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="glass-card rounded-xl p-6">
+            <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <svg className="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
               </svg>
               Emergency Contact
@@ -287,7 +288,7 @@ export default function ProfilePage() {
             
             <div className="space-y-4">
               <div>
-                <label htmlFor="emergencyContactName" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="emergencyContactName" className="block text-sm font-medium text-slate-300 mb-1">
                   Contact Name
                 </label>
                 <input
@@ -296,12 +297,12 @@ export default function ProfilePage() {
                   value={emergencyContactName}
                   onChange={(e) => setEmergencyContactName(e.target.value)}
                   placeholder="e.g., John Smith (Son)"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196F3] focus:border-transparent text-lg"
+                  className="input-dark w-full px-4 py-3 rounded-lg text-lg"
                 />
               </div>
 
               <div>
-                <label htmlFor="emergencyContactPhone" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="emergencyContactPhone" className="block text-sm font-medium text-slate-300 mb-1">
                   Contact Phone
                 </label>
                 <input
@@ -310,7 +311,7 @@ export default function ProfilePage() {
                   value={emergencyContactPhone}
                   onChange={(e) => setEmergencyContactPhone(e.target.value)}
                   placeholder="e.g., 0412 345 678"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196F3] focus:border-transparent text-lg"
+                  className="input-dark w-full px-4 py-3 rounded-lg text-lg"
                 />
               </div>
             </div>
@@ -320,7 +321,7 @@ export default function ProfilePage() {
           <button
             type="submit"
             disabled={saving}
-            className="w-full bg-[#FF5722] hover:bg-[#E64A19] text-white font-semibold py-4 px-6 rounded-xl text-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="btn-glow w-full text-white font-semibold py-4 px-6 rounded-full text-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {saving ? (
               <>
@@ -341,6 +342,8 @@ export default function ProfilePage() {
           </button>
         </form>
       </main>
+
+      <BottomNav />
     </div>
   );
 }

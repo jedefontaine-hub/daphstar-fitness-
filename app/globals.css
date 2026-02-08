@@ -1,14 +1,14 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f5f5f5;
-  --foreground: #1e293b;
-  --card: #ffffff;
-  --card-border: rgba(148, 163, 184, 0.2);
-  --primary: #2196F3;
-  --primary-dark: #1976D2;
-  --accent: #FF5722;
-  --accent-light: #FF7043;
+  --background: #0f172a;
+  --foreground: #f1f5f9;
+  --card: rgba(255, 255, 255, 0.08);
+  --card-border: rgba(255, 255, 255, 0.1);
+  --primary: #14b8a6;
+  --primary-dark: #0d9488;
+  --accent: #f59e0b;
+  --accent-light: #fbbf24;
 }
 
 @theme inline {
@@ -20,94 +20,124 @@
 
 /* Senior-friendly base styles: larger fonts, better contrast */
 html {
-  font-size: 18px; /* Larger base font for better readability */
+  font-size: 18px;
 }
 
 body {
-  background: #f5f5f5;
+  background: linear-gradient(to bottom right, #0f172a, #1e293b, #134e4a);
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
   min-height: 100vh;
   line-height: 1.6;
 }
 
-/* Clean card with subtle shadow */
-.glass-card {
-  background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+/* Dark theme gradient background */
+.dark-theme {
+  background: linear-gradient(to bottom right, #0f172a, #1e293b, #134e4a);
+  min-height: 100vh;
 }
 
-/* Primary button - blue theme */
+/* Glass card - dark mode glass morphism */
+.glass-card {
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* Light glass card for contrast areas */
+.glass-card-light {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+}
+
+/* Primary button - teal glow */
 .btn-glow {
-  background: #2196F3;
-  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+  background: linear-gradient(135deg, #14b8a6, #0d9488);
+  box-shadow: 0 4px 16px rgba(20, 184, 166, 0.4);
   transition: all 0.2s ease;
   min-height: 52px;
   font-size: 1rem;
 }
 
 .btn-glow:hover {
-  background: #1976D2;
-  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
+  background: linear-gradient(135deg, #0d9488, #0f766e);
+  box-shadow: 0 6px 20px rgba(20, 184, 166, 0.5);
+  transform: translateY(-1px);
 }
 
 .btn-glow:disabled {
-  background: #9ca3af;
+  background: #475569;
   box-shadow: none;
+  transform: none;
 }
 
-/* Orange accent button - circular action */
+/* Secondary button outline */
+.btn-outline {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #f1f5f9;
+  transition: all 0.2s ease;
+}
+
+.btn-outline:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(20, 184, 166, 0.5);
+}
+
+/* Orange accent button */
 .btn-action {
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: #FF5722;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(255, 87, 34, 0.3);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
 }
 
 .btn-action:hover {
-  background: #F4511E;
+  background: linear-gradient(135deg, #d97706, #b45309);
   transform: scale(1.05);
 }
 
-.btn-action.booked {
-  background: #FF5722;
-}
-
-/* Text heading */
+/* Gradient text */
 .gradient-text {
-  color: #1e293b;
+  background: linear-gradient(135deg, #f1f5f9, #cbd5e1);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-/* Input style - larger, easier to tap */
+/* Input style - dark theme */
 .input-dark {
-  background: #ffffff;
-  border: 2px solid #e0e0e0;
-  color: #1e293b;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #f1f5f9;
   transition: all 0.2s ease;
   min-height: 52px;
   font-size: 1rem;
 }
 
 .input-dark:focus {
-  border-color: #2196F3;
-  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.15);
+  border-color: #14b8a6;
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.2);
   outline: none;
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .input-dark::placeholder {
-  color: #9e9e9e;
+  color: #94a3b8;
 }
 
-/* No background pattern - clean look */
+/* Dark background pattern */
 .bg-grid {
-  background: transparent;
+  background: linear-gradient(to bottom right, #0f172a, #1e293b, #134e4a);
 }
 
 /* Senior-friendly button base */
@@ -118,28 +148,34 @@ a[role="button"],
   min-width: 48px;
 }
 
-/* Blue link colors */
+/* Teal link colors */
 a {
-  color: #2196F3;
+  color: #5eead4;
 }
 
 a:hover {
-  color: #1976D2;
+  color: #99f6e4;
+}
+
+/* Select dropdowns - dark theme */
+select option {
+  background: #1e293b;
+  color: #e2e8f0;
 }
 
 /* Class time display */
 .class-time {
-  color: #2196F3;
+  color: #5eead4;
   font-weight: 700;
   font-size: 1.1rem;
 }
 
-/* Date header */
+/* Date header - dark theme */
 .date-header {
   font-size: 1rem;
   font-weight: 600;
-  color: #424242;
+  color: #cbd5e1;
   padding: 0.75rem 0;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   margin-bottom: 0.5rem;
 }
