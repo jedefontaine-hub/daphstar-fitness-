@@ -1,3 +1,4 @@
+import { beforeEach, vi } from 'vitest'
 import '@testing-library/jest-dom'
 
 // Mock crypto.randomUUID for Node.js test environment
