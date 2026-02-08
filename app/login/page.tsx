@@ -75,21 +75,21 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-grid px-6 py-10">
-      {/* Gradient orbs */}
+      {/* Soft decorative shapes */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -left-40 -top-40 h-80 w-80 rounded-full bg-purple-500/20 blur-[100px]" />
-        <div className="absolute -right-40 top-1/3 h-80 w-80 rounded-full bg-fuchsia-500/15 blur-[100px]" />
+        <div className="absolute -left-40 -top-40 h-80 w-80 rounded-full bg-violet-200/40 blur-[100px]" />
+        <div className="absolute -right-40 top-1/3 h-80 w-80 rounded-full bg-purple-200/30 blur-[100px]" />
       </div>
 
       <div className="relative mx-auto max-w-md">
         <div className="mb-8 text-center">
-          <a href="/" className="text-xs font-medium uppercase tracking-[0.3em] text-purple-400 hover:text-purple-300 transition">
+          <a href="/" className="text-sm font-semibold uppercase tracking-[0.2em] text-violet-600 hover:text-violet-700 transition">
             Daphstar Fitness
           </a>
-          <h1 className="mt-4 gradient-text text-3xl font-bold">
+          <h1 className="mt-4 gradient-text text-3xl font-bold text-slate-800">
             {mode === "login" ? "Welcome Back" : "Join Us"}
           </h1>
-          <p className="mt-2 text-slate-400">
+          <p className="mt-3 text-lg text-slate-600">
             {mode === "login"
               ? "Sign in to book classes and manage your bookings."
               : "Create an account to start booking fitness classes."}
@@ -98,23 +98,23 @@ export default function LoginPage() {
 
         <div className="glass-card rounded-3xl p-8">
           {/* Tab toggle */}
-          <div className="mb-6 flex rounded-xl border border-white/10 bg-white/5 p-1">
+          <div className="mb-6 flex rounded-xl border border-slate-200 bg-slate-100 p-1">
             <button
               onClick={() => setMode("login")}
-              className={`flex-1 rounded-lg py-2.5 text-sm font-medium transition ${
+              className={`flex-1 rounded-lg py-3 text-base font-medium transition ${
                 mode === "login"
-                  ? "bg-purple-500/30 text-purple-300"
-                  : "text-slate-400 hover:text-white"
+                  ? "bg-white text-violet-700 shadow-sm"
+                  : "text-slate-500 hover:text-slate-700"
               }`}
             >
               Sign In
             </button>
             <button
               onClick={() => setMode("register")}
-              className={`flex-1 rounded-lg py-2.5 text-sm font-medium transition ${
+              className={`flex-1 rounded-lg py-3 text-base font-medium transition ${
                 mode === "register"
-                  ? "bg-purple-500/30 text-purple-300"
-                  : "text-slate-400 hover:text-white"
+                  ? "bg-white text-violet-700 shadow-sm"
+                  : "text-slate-500 hover:text-slate-700"
               }`}
             >
               Register
@@ -123,47 +123,47 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {mode === "register" && (
-              <label className="grid gap-2 text-sm font-medium text-slate-300">
+              <label className="grid gap-2 text-base font-medium text-slate-700">
                 Full Name
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="input-dark h-12 rounded-xl px-4 text-sm"
+                  className="input-dark h-14 rounded-xl px-4 text-base"
                   placeholder="Margaret Wilson"
                 />
               </label>
             )}
 
-            <label className="grid gap-2 text-sm font-medium text-slate-300">
+            <label className="grid gap-2 text-base font-medium text-slate-700">
               Email
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="input-dark h-12 rounded-xl px-4 text-sm"
+                className="input-dark h-14 rounded-xl px-4 text-base"
                 placeholder="margaret@example.com"
               />
             </label>
 
-            <label className="grid gap-2 text-sm font-medium text-slate-300">
+            <label className="grid gap-2 text-base font-medium text-slate-700">
               Password
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="input-dark h-12 rounded-xl px-4 text-sm"
+                className="input-dark h-14 rounded-xl px-4 text-base"
                 placeholder={mode === "register" ? "At least 6 characters" : "••••••••"}
               />
             </label>
 
             {mode === "register" && (
-              <label className="grid gap-2 text-sm font-medium text-slate-300">
+              <label className="grid gap-2 text-base font-medium text-slate-700">
                 Retirement Village
                 <select
                   value={retirementVillage}
                   onChange={(e) => setRetirementVillage(e.target.value)}
-                  className="input-dark h-12 rounded-xl px-4 text-sm"
+                  className="input-dark h-14 rounded-xl px-4 text-base"
                 >
                   <option value="">Select your village (optional)</option>
                   <option value="Sunrise Village">Sunrise Village</option>
@@ -177,7 +177,7 @@ export default function LoginPage() {
             )}
 
             {status.state === "error" && (
-              <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
+              <div className="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-base text-red-700">
                 {status.message}
               </div>
             )}
@@ -185,11 +185,11 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={status.state === "loading"}
-              className="btn-glow w-full h-12 rounded-full text-sm font-semibold text-white"
+              className="btn-glow w-full h-14 rounded-full text-base font-semibold text-white"
             >
               {status.state === "loading" ? (
                 <span className="flex items-center justify-center gap-2">
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
                   {mode === "login" ? "Signing in..." : "Creating account..."}
                 </span>
               ) : mode === "login" ? (
@@ -201,14 +201,14 @@ export default function LoginPage() {
           </form>
 
           {mode === "login" && (
-            <p className="mt-6 text-center text-sm text-slate-400">
-              Demo accounts: <code className="text-purple-400">margaret@example.com</code> / <code className="text-purple-400">password123</code>
+            <p className="mt-6 text-center text-base text-slate-500">
+              Demo: <code className="text-violet-600 bg-violet-50 px-2 py-1 rounded">margaret@example.com</code> / <code className="text-violet-600 bg-violet-50 px-2 py-1 rounded">password123</code>
             </p>
           )}
         </div>
 
-        <p className="mt-6 text-center text-sm text-slate-500">
-          <a href="/" className="text-purple-400 hover:text-purple-300 transition">
+        <p className="mt-6 text-center text-base text-slate-600">
+          <a href="/" className="text-violet-600 hover:text-violet-700 transition font-medium">
             ← Back to schedule
           </a>
         </p>

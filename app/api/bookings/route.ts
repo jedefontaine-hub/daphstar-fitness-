@@ -15,7 +15,13 @@ export async function POST(request: Request) {
 
   const result = createBooking({ classId, customerName, customerEmail, retirementVillage });
   if (!result.ok) {
-    const status = result.error === "class_full" ? 409 : 404;
+    const statusMap: Record<string, number> = {
+      class_full: 409,
+      already_booked: 409,
+      class_not_found: 404,
+      class_cancelled: 400,
+    };
+    const status = statusMap[result.error] ?? 400;
     return NextResponse.json({ error: result.error }, { status });
   }
 

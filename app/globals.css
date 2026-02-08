@@ -1,12 +1,14 @@
 @import "tailwindcss";
 
 :root {
-  --background: #030712;
-  --foreground: #f8fafc;
-  --card: rgba(15, 23, 42, 0.8);
-  --card-border: rgba(148, 163, 184, 0.1);
-  --accent: #a855f7;
-  --accent-glow: rgba(168, 85, 247, 0.3);
+  --background: #f5f5f5;
+  --foreground: #1e293b;
+  --card: #ffffff;
+  --card-border: rgba(148, 163, 184, 0.2);
+  --primary: #2196F3;
+  --primary-dark: #1976D2;
+  --accent: #FF5722;
+  --accent-light: #FF7043;
 }
 
 @theme inline {
@@ -16,73 +18,128 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* Senior-friendly base styles: larger fonts, better contrast */
+html {
+  font-size: 18px; /* Larger base font for better readability */
+}
+
 body {
-  background: linear-gradient(135deg, #030712 0%, #0f172a 50%, #030712 100%);
-  background-attachment: fixed;
+  background: #f5f5f5;
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
   min-height: 100vh;
+  line-height: 1.6;
 }
 
-/* Glass card effect */
+/* Clean card with subtle shadow */
 .glass-card {
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(15, 23, 42, 0.7) 100%);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(148, 163, 184, 0.1);
-  box-shadow: 
-    0 4px 6px -1px rgba(0, 0, 0, 0.3),
-    0 2px 4px -2px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
-/* Accent glow button */
+/* Primary button - blue theme */
 .btn-glow {
-  background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
-  box-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
-  transition: all 0.3s ease;
+  background: #2196F3;
+  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+  transition: all 0.2s ease;
+  min-height: 52px;
+  font-size: 1rem;
 }
 
 .btn-glow:hover {
-  box-shadow: 0 0 30px rgba(168, 85, 247, 0.6);
-  transform: translateY(-1px);
+  background: #1976D2;
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
 }
 
 .btn-glow:disabled {
-  background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+  background: #9ca3af;
   box-shadow: none;
-  transform: none;
 }
 
-/* Subtle gradient text */
-.gradient-text {
-  background: linear-gradient(135deg, #f8fafc 0%, #a855f7 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* Input dark style */
-.input-dark {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  color: #f8fafc;
+/* Orange accent button - circular action */
+.btn-action {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #FF5722;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(255, 87, 34, 0.3);
+}
+
+.btn-action:hover {
+  background: #F4511E;
+  transform: scale(1.05);
+}
+
+.btn-action.booked {
+  background: #FF5722;
+}
+
+/* Text heading */
+.gradient-text {
+  color: #1e293b;
+}
+
+/* Input style - larger, easier to tap */
+.input-dark {
+  background: #ffffff;
+  border: 2px solid #e0e0e0;
+  color: #1e293b;
+  transition: all 0.2s ease;
+  min-height: 52px;
+  font-size: 1rem;
 }
 
 .input-dark:focus {
-  border-color: rgba(168, 85, 247, 0.5);
-  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.15);
+  border-color: #2196F3;
+  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.15);
   outline: none;
 }
 
 .input-dark::placeholder {
-  color: #64748b;
+  color: #9e9e9e;
 }
 
-/* Animated background pattern */
+/* No background pattern - clean look */
 .bg-grid {
-  background-image: 
-    linear-gradient(rgba(148, 163, 184, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(148, 163, 184, 0.03) 1px, transparent 1px);
-  background-size: 60px 60px;
+  background: transparent;
+}
+
+/* Senior-friendly button base */
+button, 
+a[role="button"],
+.btn {
+  min-height: 48px;
+  min-width: 48px;
+}
+
+/* Blue link colors */
+a {
+  color: #2196F3;
+}
+
+a:hover {
+  color: #1976D2;
+}
+
+/* Class time display */
+.class-time {
+  color: #2196F3;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+/* Date header */
+.date-header {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #424242;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #e0e0e0;
+  margin-bottom: 0.5rem;
 }

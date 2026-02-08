@@ -57,6 +57,15 @@ export default function AdminPage() {
   const [classes, setClasses] = useState<AdminClassSummary[]>([]);
   const [status, setStatus] = useState<PageStatus>({ state: "loading" });
   const [modal, setModal] = useState<ModalState>({ type: "none" });
+  const [isRecurring, setIsRecurring] = useState(false);
+
+  const locations = [
+    "Sunrise Village",
+    "Oakwood Gardens",
+    "Meadow Creek",
+    "Lakeside Manor",
+    "Hillcrest Retirement",
+  ];
 
   useEffect(() => {
     fetch("/api/admin/session")
@@ -110,7 +119,10 @@ export default function AdminPage() {
   const handleOpenCancelConfirm = (classItem: AdminClassSummary) =>
     setModal({ type: "cancelConfirm", classItem });
 
-  const handleCloseModal = () => setModal({ type: "none" });
+  const handleCloseModal = () => {
+    setModal({ type: "none" });
+    setIsRecurring(false);
+  };
 
   const handleCreateSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -120,6 +132,8 @@ export default function AdminPage() {
     const startTime = formData.get("startTime") as string;
     const endTime = formData.get("endTime") as string;
     const capacity = Number(formData.get("capacity"));
+    const location = formData.get("location") as string;
+    const repeatWeeks = isRecurring ? Number(formData.get("repeatWeeks")) : 1;
 
     if (!title || !startTime || !endTime || !capacity) {
       alert("All fields are required.");
@@ -132,6 +146,9 @@ export default function AdminPage() {
         startTime: new Date(startTime).toISOString(),
         endTime: new Date(endTime).toISOString(),
         capacity,
+        location: location || undefined,
+        recurring: isRecurring,
+        repeatWeeks: isRecurring ? repeatWeeks : undefined,
       });
       handleCloseModal();
       loadClasses();
@@ -368,6 +385,52 @@ export default function AdminPage() {
                       required
                     />
                   </label>
+                  <label className="grid gap-2 text-sm font-medium text-slate-300">
+                    Location
+                    <select
+                      name="location"
+                      className="input-dark h-12 rounded-xl px-4 text-sm"
+                    >
+                      <option value="">Select location...</option>
+                      {locations.map((loc) => (
+                        <option key={loc} value={loc}>
+                          {loc}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={isRecurring}
+                        onChange={(e) => setIsRecurring(e.target.checked)}
+                        className="h-5 w-5 rounded border-white/20 bg-white/10 text-purple-500 focus:ring-purple-500"
+                      />
+                      <span className="text-sm font-medium text-slate-300">Make this a recurring class</span>
+                    </label>
+                    {isRecurring && (
+                      <div className="mt-4">
+                        <label className="grid gap-2 text-sm font-medium text-slate-300">
+                          Repeat weekly for
+                          <select
+                            name="repeatWeeks"
+                            className="input-dark h-12 rounded-xl px-4 text-sm"
+                            defaultValue="8"
+                          >
+                            <option value="4">4 weeks</option>
+                            <option value="8">8 weeks</option>
+                            <option value="12">12 weeks</option>
+                            <option value="26">26 weeks (6 months)</option>
+                            <option value="52">52 weeks (1 year)</option>
+                          </select>
+                        </label>
+                        <p className="mt-2 text-xs text-slate-400">
+                          This will create multiple class entries, one for each week.
+                        </p>
+                      </div>
+                    )}
+                  </div>
                   <div className="mt-4 flex justify-end gap-3">
                     <button
                       type="button"

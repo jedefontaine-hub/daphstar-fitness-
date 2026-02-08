@@ -111,3 +111,50 @@ export async function sendCancellationConfirmation(params: {
     };
   }
 }
+
+export async function sendBirthdayEmail(params: {
+  customerEmail: string;
+  customerName: string;
+}): Promise<{ success: boolean; error?: string }> {
+  const client = getResend();
+  if (!client) {
+    console.warn("RESEND_API_KEY not configured – skipping birthday email");
+    return { success: true };
+  }
+
+  try {
+    await client.emails.send({
+      from: fromEmail,
+      to: params.customerEmail,
+      subject: `🎂 Happy Birthday, ${params.customerName}!`,
+      html: `
+        <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; text-align: center;">
+          <div style="font-size: 64px; margin: 20px 0;">🎂</div>
+          <h1 style="color: #1e293b; font-size: 28px; margin-bottom: 16px;">Happy Birthday, ${params.customerName}!</h1>
+          <p style="color: #475569; font-size: 16px; line-height: 1.6;">
+            From everyone at Daphstar Fitness, we wish you a wonderful birthday filled with joy and happiness!
+          </p>
+          <div style="background: linear-gradient(135deg, #FF5722 0%, #FF9800 100%); border-radius: 16px; padding: 24px; margin: 24px 0;">
+            <p style="margin: 0; font-size: 18px; color: white; font-weight: 600;">
+              Here's to another year of health and fitness! 💪
+            </p>
+          </div>
+          <p style="color: #475569;">
+            Treat yourself today – you deserve it!
+          </p>
+          <a href="${appUrl}" style="display: inline-block; margin-top: 16px; padding: 12px 24px; background: #2196F3; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
+            Book Your Next Class
+          </a>
+          <p style="color: #94a3b8; font-size: 12px; margin-top: 32px;">With love, Daphstar Fitness Team 💙</p>
+        </div>
+      `,
+    });
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to send birthday email:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Email send failed",
+    };
+  }
+}

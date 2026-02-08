@@ -96,30 +96,30 @@ export default function MyBookingsPage() {
 
   return (
     <div className="min-h-screen bg-grid">
-      {/* Gradient orbs */}
+      {/* Soft decorative shapes */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -left-40 -top-40 h-80 w-80 rounded-full bg-purple-500/20 blur-[100px]" />
-        <div className="absolute -right-40 top-1/3 h-80 w-80 rounded-full bg-fuchsia-500/15 blur-[100px]" />
+        <div className="absolute -left-40 -top-40 h-80 w-80 rounded-full bg-violet-200/40 blur-[100px]" />
+        <div className="absolute -right-40 top-1/3 h-80 w-80 rounded-full bg-purple-200/30 blur-[100px]" />
       </div>
 
-      <header className="relative border-b border-white/5 bg-black/20 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-6">
+      <header className="relative border-b border-slate-200 bg-white/80 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-5">
           <div>
-            <a href="/" className="text-xs font-medium uppercase tracking-[0.3em] text-purple-400 hover:text-purple-300 transition">
+            <a href="/" className="text-sm font-semibold uppercase tracking-[0.2em] text-violet-600 hover:text-violet-700 transition">
               Daphstar Fitness
             </a>
-            <h1 className="mt-1 text-2xl font-bold text-white">My Bookings</h1>
+            <h1 className="mt-1 text-2xl font-bold text-slate-800">My Bookings</h1>
           </div>
           <div className="flex items-center gap-3">
             <a
               href="/calendar"
-              className="rounded-full border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium text-slate-300 backdrop-blur-sm transition hover:border-purple-500/50 hover:bg-white/10 hover:text-white"
+              className="rounded-full border border-slate-300 bg-white px-6 py-3 text-base font-medium text-slate-700 transition hover:border-violet-400 hover:bg-violet-50 hover:text-violet-700"
             >
               Calendar
             </a>
             <a
               href="/"
-              className="rounded-full border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium text-slate-300 backdrop-blur-sm transition hover:border-purple-500/50 hover:bg-white/10 hover:text-white"
+              className="rounded-full border border-slate-300 bg-white px-6 py-3 text-base font-medium text-slate-700 transition hover:border-violet-400 hover:bg-violet-50 hover:text-violet-700"
             >
               Schedule
             </a>
@@ -130,8 +130,8 @@ export default function MyBookingsPage() {
       <main className="relative mx-auto max-w-2xl px-6 py-10">
         {/* Lookup form */}
         <div className="glass-card rounded-3xl p-6 mb-8">
-          <h2 className="text-lg font-semibold text-white mb-2">Look Up Your Bookings</h2>
-          <p className="text-sm text-slate-400 mb-4">
+          <h2 className="text-xl font-semibold text-slate-800 mb-2">Look Up Your Bookings</h2>
+          <p className="text-base text-slate-600 mb-4">
             Enter the email address you used when booking to view and manage your reservations.
           </p>
           <form onSubmit={handleLookup} className="flex flex-col sm:flex-row gap-3">
@@ -140,16 +140,16 @@ export default function MyBookingsPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="your@email.com"
-              className="input-dark flex-1 h-12 rounded-xl px-4 text-sm"
+              className="input-dark flex-1 h-14 rounded-xl px-4 text-base"
             />
             <button
               type="submit"
               disabled={status.state === "loading"}
-              className="btn-glow h-12 rounded-full px-6 text-sm font-semibold text-white whitespace-nowrap"
+              className="btn-glow h-14 rounded-full px-8 text-base font-semibold text-white whitespace-nowrap"
             >
               {status.state === "loading" ? (
                 <span className="flex items-center justify-center gap-2">
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
                   Looking up...
                 </span>
               ) : (
@@ -158,7 +158,7 @@ export default function MyBookingsPage() {
             </button>
           </form>
           {status.state === "error" && (
-            <div className="mt-4 rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
+            <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-base text-red-700">
               {status.message}
             </div>
           )}
@@ -169,21 +169,21 @@ export default function MyBookingsPage() {
           <>
             {bookings.length === 0 ? (
               <div className="glass-card rounded-3xl p-8 text-center">
-                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-500/20">
-                  <svg className="h-7 w-7 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100">
+                  <svg className="h-8 w-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-white">No Bookings Found</h3>
-                <p className="mt-2 text-sm text-slate-400">
+                <h3 className="text-xl font-semibold text-slate-800">No Bookings Found</h3>
+                <p className="mt-2 text-base text-slate-600">
                   We couldn&apos;t find any bookings for this email address.
                 </p>
                 <a
                   href="/calendar"
-                  className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-purple-400 hover:text-purple-300 transition"
+                  className="mt-5 inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-6 py-3 text-base font-medium text-violet-700 hover:bg-violet-100 transition"
                 >
                   Browse classes to book
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </a>
@@ -193,25 +193,25 @@ export default function MyBookingsPage() {
                 {/* Upcoming bookings */}
                 {upcomingBookings.length > 0 && (
                   <section>
-                    <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-emerald-400">
-                      <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                    <h3 className="mb-4 flex items-center gap-2 text-base font-semibold uppercase tracking-wider text-emerald-600">
+                      <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
                       Upcoming ({upcomingBookings.length})
                     </h3>
                     <div className="space-y-3">
                       {upcomingBookings.map((booking) => (
                         <div
                           key={booking.id}
-                          className="glass-card flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-2xl p-4"
+                          className="glass-card flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-2xl p-5"
                         >
                           <div className="flex items-center gap-4">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500/20 to-fuchsia-500/20">
-                              <svg className="h-6 w-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-violet-100">
+                              <svg className="h-7 w-7 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                               </svg>
                             </div>
                             <div>
-                              <h4 className="font-semibold text-white">{booking.classTitle}</h4>
-                              <p className="text-sm text-slate-400" suppressHydrationWarning>
+                              <h4 className="text-lg font-semibold text-slate-800">{booking.classTitle}</h4>
+                              <p className="text-base text-slate-600" suppressHydrationWarning>
                                 {formatDateTime(booking.classStartTime)}
                               </p>
                             </div>
@@ -219,7 +219,7 @@ export default function MyBookingsPage() {
                           <button
                             onClick={() => handleCancel(booking)}
                             disabled={cancellingId === booking.id}
-                            className="rounded-full border border-rose-500/30 bg-rose-500/10 px-4 py-2 text-sm font-semibold text-rose-300 transition hover:border-rose-500 hover:bg-rose-500/20 disabled:opacity-50"
+                            className="rounded-full border-2 border-red-200 bg-red-50 px-6 py-3 text-base font-semibold text-red-600 transition hover:border-red-300 hover:bg-red-100 disabled:opacity-50"
                           >
                             {cancellingId === booking.id ? "Cancelling..." : "Cancel"}
                           </button>
@@ -232,24 +232,24 @@ export default function MyBookingsPage() {
                 {/* Past bookings */}
                 {pastBookings.length > 0 && (
                   <section>
-                    <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-slate-500">
-                      <span className="h-2 w-2 rounded-full bg-slate-500" />
+                    <h3 className="mb-4 flex items-center gap-2 text-base font-semibold uppercase tracking-wider text-slate-500">
+                      <span className="h-2.5 w-2.5 rounded-full bg-slate-400" />
                       Past ({pastBookings.length})
                     </h3>
-                    <div className="space-y-3 opacity-60">
+                    <div className="space-y-3 opacity-70">
                       {pastBookings.map((booking) => (
                         <div
                           key={booking.id}
-                          className="glass-card flex items-center gap-4 rounded-2xl p-4"
+                          className="glass-card flex items-center gap-4 rounded-2xl p-5"
                         >
-                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-500/20">
-                            <svg className="h-5 w-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100">
+                            <svg className="h-6 w-6 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                             </svg>
                           </div>
                           <div>
-                            <h4 className="font-semibold text-white">{booking.classTitle}</h4>
-                            <p className="text-sm text-slate-500" suppressHydrationWarning>
+                            <h4 className="text-lg font-semibold text-slate-700">{booking.classTitle}</h4>
+                            <p className="text-base text-slate-500" suppressHydrationWarning>
                               {formatDateTime(booking.classStartTime)}
                             </p>
                           </div>
@@ -262,24 +262,24 @@ export default function MyBookingsPage() {
                 {/* Cancelled bookings */}
                 {cancelledBookings.length > 0 && (
                   <section>
-                    <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-rose-400/70">
-                      <span className="h-2 w-2 rounded-full bg-rose-400/70" />
+                    <h3 className="mb-4 flex items-center gap-2 text-base font-semibold uppercase tracking-wider text-red-500">
+                      <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
                       Cancelled ({cancelledBookings.length})
                     </h3>
-                    <div className="space-y-3 opacity-50">
+                    <div className="space-y-3 opacity-60">
                       {cancelledBookings.map((booking) => (
                         <div
                           key={booking.id}
-                          className="glass-card flex items-center gap-4 rounded-2xl p-4"
+                          className="glass-card flex items-center gap-4 rounded-2xl p-5"
                         >
-                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-500/20">
-                            <svg className="h-5 w-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-100">
+                            <svg className="h-6 w-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
                           </div>
                           <div>
-                            <h4 className="font-semibold text-white">{booking.classTitle}</h4>
-                            <p className="text-sm text-slate-500" suppressHydrationWarning>
+                            <h4 className="text-lg font-semibold text-slate-700">{booking.classTitle}</h4>
+                            <p className="text-base text-slate-500" suppressHydrationWarning>
                               {formatDateTime(booking.classStartTime)}
                               {booking.classStatus === "cancelled" && " · Class cancelled"}
                             </p>
