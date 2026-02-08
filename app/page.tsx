@@ -7,6 +7,7 @@ import { SkeletonSchedule, SkeletonLeaderboard } from "@/components/ui/Skeleton"
 import { NoClassesFound, ErrorState } from "@/components/ui/EmptyState";
 import { PageTransition, FadeIn } from "@/components/ui/PageTransition";
 import { formatTime, formatDuration, formatDateHeader, getDateKey } from "@/lib/utils/date";
+import { getVillageColor, getInitials } from "@/lib/constants";
 
 type ScheduleStatus =
   | { state: "loading" }
@@ -193,33 +194,76 @@ export default function Home() {
             ) : leaderboard.length > 0 ? (
               <div className="space-y-2">
                 {leaderboard.map((entry, index) => {
-                  const medalColors = [
-                    "bg-amber-400", // Gold
-                    "bg-gray-300",  // Silver
-                    "bg-amber-600", // Bronze
-                  ];
+                  const isFirst = index === 0;
                   const isTop3 = index < 3;
+                  const maxSessions = leaderboard[0]?.sessionsAttended || 1;
+                  const progressPercent = (entry.sessionsAttended / maxSessions) * 100;
+                  const villageColor = getVillageColor(entry.retirementVillage);
+                  const initials = getInitials(entry.customerName);
                   
                   return (
                   <div
                     key={entry.customerName}
-                    className="flex items-center gap-3 rounded-lg bg-gray-50 p-3"
+                    className="group relative flex items-center gap-3 rounded-xl bg-gray-50 p-3 transition-all duration-200 hover:bg-white hover:shadow-md hover:scale-[1.01]"
                   >
-                    <div
-                      className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${
-                        isTop3
-                          ? `${medalColors[index]} text-white`
-                          : "bg-gray-200 text-gray-600"
-                      }`}
-                    >
-                      {index + 1}
+                    {/* Progress bar background */}
+                    <div 
+                      className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
+                      style={{ width: `${progressPercent}%` }}
+                    />
+                    
+                    {/* Rank badge */}
+                    <div className="relative flex items-center justify-center">
+                      {isFirst ? (
+                        <div className="relative">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-amber-500 text-white font-bold shadow-md">
+                            1
+                          </div>
+                          {/* Crown */}
+                          <svg 
+                            className="absolute -top-3 left-1/2 -translate-x-1/2 h-5 w-5 text-amber-500 drop-shadow-sm" 
+                            fill="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm2 2h10v2H7v-2z"/>
+                          </svg>
+                        </div>
+                      ) : isTop3 ? (
+                        <div className={`flex h-10 w-10 items-center justify-center rounded-full font-bold text-white shadow-sm ${
+                          index === 1 ? "bg-gradient-to-br from-gray-300 to-gray-400" : "bg-gradient-to-br from-amber-600 to-amber-700"
+                        }`}>
+                          {index + 1}
+                        </div>
+                      ) : (
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200 text-gray-600 font-semibold">
+                          {index + 1}
+                        </div>
+                      )}
                     </div>
-                    <div className="min-w-0 flex-1">
+                    
+                    {/* Avatar with village color */}
+                    <div className={`relative flex h-10 w-10 items-center justify-center rounded-full ${villageColor.bg} ${villageColor.text} font-bold text-sm ring-2 ring-white shadow-sm`}>
+                      {initials}
+                    </div>
+
+                    {/* Name and village */}
+                    <div className="relative min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-gray-900">{entry.customerName}</p>
-                      <p className="text-xs text-gray-500">{entry.retirementVillage}</p>
+                      <p className={`text-xs ${villageColor.text} font-medium`}>{entry.retirementVillage}</p>
+                      {/* Mini progress bar */}
+                      <div className="mt-1.5 h-1 w-full rounded-full bg-gray-200 overflow-hidden">
+                        <div 
+                          className="h-full rounded-full bg-gradient-to-r from-blue-400 to-blue-500 transition-all duration-500"
+                          style={{ width: `${progressPercent}%` }}
+                        />
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-lg font-bold text-blue-500">{entry.sessionsAttended}</p>
+
+                    {/* Sessions count */}
+                    <div className="relative text-right">
+                      <p className={`text-xl font-bold ${isFirst ? "text-amber-500" : "text-blue-500"}`}>
+                        {entry.sessionsAttended}
+                      </p>
                       <p className="text-xs text-gray-400">sessions</p>
                     </div>
                   </div>
