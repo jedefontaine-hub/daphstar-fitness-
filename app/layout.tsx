@@ -1,7 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
+import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,7 +16,25 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Daphstar Fitness",
-  description: "Class schedule, booking, and admin management.",
+  description: "Book fitness classes at your retirement village",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Daphstar Fitness",
+  },
+  icons: {
+    icon: "/favicon.png",
+    apple: "/icons/apple-touch-icon.png",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0d9488",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({
@@ -29,6 +48,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-50 text-slate-900`}
       >
         <Providers>{children}</Providers>
+        <ServiceWorkerRegistration />
       </body>
     </html>
   );
