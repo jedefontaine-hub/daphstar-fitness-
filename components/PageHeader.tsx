@@ -113,22 +113,23 @@ export function PageHeader({
   const headerBg = isLight ? "bg-white border-b border-gray-200" : "bg-white/80 backdrop-blur-xl border-b border-slate-200";
   const titleColor = isLight ? "text-gray-900" : "text-slate-800";
   const subtitleColor = isLight ? "text-gray-500" : "text-slate-500";
+  // Mobile: icon only (p-2), Desktop: icon + text (px-3 py-2)
   const navLinkClass = isLight
-    ? "flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
-    : "flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100";
+    ? "flex items-center justify-center gap-1.5 rounded-lg p-2 sm:px-3 sm:py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
+    : "flex items-center justify-center gap-1.5 rounded-lg p-2 sm:px-3 sm:py-2 text-sm font-medium text-slate-600 hover:bg-slate-100";
 
   return (
     <header className={`${headerBg} sticky top-0 z-10`}>
-      <div className={`mx-auto flex items-center justify-between px-4 py-4 ${maxWidthClasses[maxWidth]}`}>
+      <div className={`mx-auto flex items-center justify-between px-3 sm:px-4 py-3 sm:py-4 ${maxWidthClasses[maxWidth]}`}>
         {showBackLink ? (
           <Link href={backHref} className="text-gray-600 hover:text-[#2196F3] flex items-center gap-2">
             <ChevronLeftIcon />
             {backLabel}
           </Link>
         ) : (
-          <div>
-            <h1 className={`text-xl font-bold ${titleColor}`}>{title}</h1>
-            {subtitle && <p className={`text-sm ${subtitleColor}`}>{subtitle}</p>}
+          <div className="min-w-0">
+            <h1 className={`text-lg sm:text-xl font-bold ${titleColor}`}>{title}</h1>
+            {subtitle && <p className={`text-xs sm:text-sm ${subtitleColor}`}>{subtitle}</p>}
           </div>
         )}
 
@@ -139,40 +140,42 @@ export function PageHeader({
         {rightContent ? (
           rightContent
         ) : showNav ? (
-          <nav className="flex items-center gap-2">
-            <Link href="/calendar" className={navLinkClass}>
-              <CalendarIcon />
-              Calendar
+          <nav className="flex items-center gap-1 sm:gap-2">
+            <Link href="/calendar" className={navLinkClass} title="Calendar">
+              <CalendarIcon className="h-5 w-5 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Calendar</span>
             </Link>
-            <Link href="/my-bookings" className={`${navLinkClass} whitespace-nowrap`}>
-              <BookmarkIcon />
-              Bookings
+            <Link href="/my-bookings" className={navLinkClass} title="My Bookings">
+              <BookmarkIcon className="h-5 w-5 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Bookings</span>
             </Link>
             {customer ? (
-              <div className="flex items-center gap-2">
+              <>
                 <Link
                   href="/dashboard"
-                  className="flex items-center gap-1.5 rounded-lg bg-blue-50 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-100"
+                  className="flex items-center justify-center gap-1.5 rounded-lg bg-blue-50 p-2 sm:px-3 sm:py-2 text-sm font-medium text-blue-600 hover:bg-blue-100"
+                  title="Dashboard"
                 >
-                  <DashboardIcon />
-                  Dashboard
+                  <DashboardIcon className="h-5 w-5 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Dashboard</span>
                 </Link>
-                <Link href="/profile" className={`${navLinkClass} whitespace-nowrap`}>
-                  <UserIcon />
-                  Profile
+                <Link href="/profile" className={navLinkClass} title="Profile">
+                  <UserIcon className="h-5 w-5 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Profile</span>
                 </Link>
-                <button onClick={handleLogout} className={navLinkClass}>
-                  <LogoutIcon />
-                  Logout
+                <button onClick={handleLogout} className={navLinkClass} title="Logout">
+                  <LogoutIcon className="h-5 w-5 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Logout</span>
                 </button>
-              </div>
+              </>
             ) : (
               <Link
                 href="/login"
-                className="flex items-center gap-1.5 rounded-lg bg-blue-500 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-600"
+                className="flex items-center justify-center gap-1.5 rounded-lg bg-blue-500 p-2 sm:px-4 sm:py-2 text-sm font-semibold text-white hover:bg-blue-600"
+                title="Login"
               >
-                <LoginIcon />
-                Login
+                <LoginIcon className="h-5 w-5 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Login</span>
               </Link>
             )}
           </nav>

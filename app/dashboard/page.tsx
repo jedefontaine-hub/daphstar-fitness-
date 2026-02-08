@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { cancelBooking } from "@/lib/api";
 import { ConfirmModal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
+import { BottomNav } from "@/components/BottomNav";
 
 type DashboardBooking = {
   id: string;
@@ -46,16 +47,16 @@ type LoadStatus =
   | { state: "unauthorized" };
 
 const villageColors: Record<string, { bg: string; text: string; border: string }> = {
-  "Sunrise Village": { bg: "bg-amber-100", text: "text-amber-700", border: "border-amber-300" },
-  "Oakwood Gardens": { bg: "bg-emerald-100", text: "text-emerald-700", border: "border-emerald-300" },
-  "Meadow Creek": { bg: "bg-sky-100", text: "text-sky-700", border: "border-sky-300" },
-  "Lakeside Manor": { bg: "bg-violet-100", text: "text-violet-700", border: "border-violet-300" },
-  "Hillcrest Retirement": { bg: "bg-rose-100", text: "text-rose-700", border: "border-rose-300" },
+  "Sunrise Village": { bg: "bg-amber-500/20", text: "text-amber-400", border: "border-amber-500/30" },
+  "Oakwood Gardens": { bg: "bg-emerald-500/20", text: "text-emerald-400", border: "border-emerald-500/30" },
+  "Meadow Creek": { bg: "bg-sky-500/20", text: "text-sky-400", border: "border-sky-500/30" },
+  "Lakeside Manor": { bg: "bg-violet-500/20", text: "text-violet-400", border: "border-violet-500/30" },
+  "Hillcrest Retirement": { bg: "bg-rose-500/20", text: "text-rose-400", border: "border-rose-500/30" },
 };
 
 function getVillageColor(village?: string) {
-  if (!village) return { bg: "bg-slate-100", text: "text-slate-600", border: "border-slate-300" };
-  return villageColors[village] || { bg: "bg-slate-100", text: "text-slate-600", border: "border-slate-300" };
+  if (!village) return { bg: "bg-slate-500/20", text: "text-slate-400", border: "border-slate-500/30" };
+  return villageColors[village] || { bg: "bg-slate-500/20", text: "text-slate-400", border: "border-slate-500/30" };
 }
 
 function formatDateTime(iso: string): string {
@@ -150,7 +151,7 @@ export default function DashboardPage() {
             </svg>
           </div>
           <h2 className="text-2xl font-bold text-slate-800">Sign In Required</h2>
-          <p className="mt-3 text-lg text-slate-600">Please log in to view your dashboard.</p>
+          <p className="mt-3 text-lg text-slate-400">Please log in to view your dashboard.</p>
           <a
             href="/login"
             className="btn-glow mt-6 inline-block rounded-full px-8 py-3.5 text-base font-semibold text-white"
@@ -189,31 +190,31 @@ export default function DashboardPage() {
   const { customer, upcomingBookings, pastBookings, stats } = status.data;
 
   return (
-    <div className="min-h-screen bg-grid">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-teal-900 pb-20">
       {/* Soft decorative shapes */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -left-40 -top-40 h-80 w-80 rounded-full bg-violet-200/40 blur-[100px]" />
-        <div className="absolute -right-40 top-1/3 h-80 w-80 rounded-full bg-purple-200/30 blur-[100px]" />
+        <div className="absolute -left-40 -top-40 h-80 w-80 rounded-full bg-teal-500/20 blur-[100px]" />
+        <div className="absolute -right-40 top-1/3 h-80 w-80 rounded-full bg-cyan-500/10 blur-[100px]" />
       </div>
 
-      <header className="relative border-b border-slate-200 bg-white/80 backdrop-blur-xl">
+      <header className="relative border-b border-white/10 bg-slate-900/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-5">
           <div>
-            <a href="/" className="text-sm font-semibold uppercase tracking-[0.2em] text-violet-600 hover:text-violet-700 transition">
+            <a href="/" className="text-sm font-semibold uppercase tracking-[0.2em] text-teal-400 hover:text-teal-300 transition">
               Daphstar Fitness
             </a>
-            <h1 className="mt-1 text-2xl font-bold text-slate-800">My Dashboard</h1>
+            <h1 className="mt-1 text-2xl font-bold text-white">My Dashboard</h1>
           </div>
           <div className="flex items-center gap-3">
             <a
               href="/"
-              className="rounded-full border border-slate-300 bg-white px-6 py-3 text-base font-medium text-slate-700 transition hover:border-violet-400 hover:bg-violet-50 hover:text-violet-700"
+              className="rounded-full border border-white/20 bg-white/10 px-6 py-3 text-base font-medium text-slate-200 transition hover:bg-white/20"
             >
               Browse Classes
             </a>
             <button
               onClick={handleLogout}
-              className="rounded-full border border-slate-300 bg-white px-6 py-3 text-base font-medium text-slate-600 transition hover:border-red-300 hover:bg-red-50 hover:text-red-600"
+              className="rounded-full border border-white/20 bg-white/10 px-6 py-3 text-base font-medium text-slate-200 transition hover:border-red-400/50 hover:bg-red-500/20 hover:text-red-300"
             >
               Logout
             </button>
@@ -225,11 +226,11 @@ export default function DashboardPage() {
         {/* Welcome section */}
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="gradient-text text-3xl font-bold text-slate-800">
+            <h2 className="gradient-text text-3xl font-bold">
               Welcome back, {customer.name.split(" ")[0]}!
             </h2>
             {customer.retirementVillage && (
-              <span className={`mt-3 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-base font-medium ${getVillageColor(customer.retirementVillage).bg} ${getVillageColor(customer.retirementVillage).text} ${getVillageColor(customer.retirementVillage).border}`}>
+              <span className={`mt-3 inline-flex items-center gap-2 rounded-full border border-white/20 px-4 py-1.5 text-base font-medium ${getVillageColor(customer.retirementVillage).bg} ${getVillageColor(customer.retirementVillage).text}`}>
                 <span className={`h-2.5 w-2.5 rounded-full ${getVillageColor(customer.retirementVillage).text.replace('text-', 'bg-')}`} />
                 {customer.retirementVillage}
               </span>
@@ -241,58 +242,58 @@ export default function DashboardPage() {
         <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="glass-card rounded-2xl p-5">
             <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-violet-100">
-                <svg className="h-7 w-7 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-teal-500/20">
+                <svg className="h-7 w-7 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
               <div>
-                <p className="text-3xl font-bold text-slate-800">{stats.totalAttended}</p>
-                <p className="text-base text-slate-600">Classes Attended</p>
+                <p className="text-3xl font-bold text-white">{stats.totalAttended}</p>
+                <p className="text-base text-slate-400">Classes Attended</p>
               </div>
             </div>
           </div>
 
           <div className="glass-card rounded-2xl p-5">
             <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-emerald-100">
-                <svg className="h-7 w-7 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-emerald-500/20">
+                <svg className="h-7 w-7 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
               <div>
-                <p className="text-3xl font-bold text-slate-800">{stats.totalUpcoming}</p>
-                <p className="text-base text-slate-600">Upcoming</p>
+                <p className="text-3xl font-bold text-white">{stats.totalUpcoming}</p>
+                <p className="text-base text-slate-400">Upcoming</p>
               </div>
             </div>
           </div>
 
           <div className="glass-card rounded-2xl p-5">
             <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-amber-100">
-                <svg className="h-7 w-7 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-amber-500/20">
+                <svg className="h-7 w-7 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
                 </svg>
               </div>
               <div>
-                <p className="text-3xl font-bold text-slate-800">{stats.streak}</p>
-                <p className="text-base text-slate-600">Week Streak 🔥</p>
+                <p className="text-3xl font-bold text-white">{stats.streak}</p>
+                <p className="text-base text-slate-400">Week Streak 🔥</p>
               </div>
             </div>
           </div>
 
           <div className="glass-card rounded-2xl p-5">
             <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-rose-100">
-                <svg className="h-7 w-7 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-rose-500/20">
+                <svg className="h-7 w-7 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
                 </svg>
               </div>
               <div>
-                <p className="text-3xl font-bold text-slate-800">
+                <p className="text-3xl font-bold text-white">
                   {stats.rank ? `#${stats.rank}` : "—"}
                 </p>
-                <p className="text-base text-slate-600">Leaderboard</p>
+                <p className="text-base text-slate-400">Leaderboard</p>
               </div>
             </div>
           </div>
@@ -301,24 +302,24 @@ export default function DashboardPage() {
         {/* Favorite class */}
         {stats.favoriteClass && (
           <div className="mb-8 glass-card rounded-2xl p-5">
-            <p className="text-base text-slate-600">
-              Your favorite class: <span className="font-semibold text-violet-600">{stats.favoriteClass}</span>
+            <p className="text-base text-slate-400">
+              Your favorite class: <span className="font-semibold text-teal-400">{stats.favoriteClass}</span>
             </p>
           </div>
         )}
 
         {/* Upcoming bookings */}
         <section className="mb-8">
-          <h3 className="mb-4 flex items-center gap-2 text-xl font-semibold text-slate-800">
+          <h3 className="mb-4 flex items-center gap-2 text-xl font-semibold text-white">
             <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
             Upcoming Classes ({upcomingBookings.length})
           </h3>
           {upcomingBookings.length === 0 ? (
             <div className="glass-card rounded-2xl p-8 text-center">
-              <p className="text-lg text-slate-600">No upcoming bookings</p>
+              <p className="text-lg text-slate-400">No upcoming bookings</p>
               <a
                 href="/"
-                className="mt-4 inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-6 py-3 text-base font-medium text-violet-700 hover:bg-violet-100 transition"
+                className="mt-4 inline-flex items-center gap-2 rounded-full border border-teal-500/30 bg-teal-500/20 px-6 py-3 text-base font-medium text-teal-300 hover:bg-teal-500/30 transition"
               >
                 Browse classes to book
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -340,13 +341,13 @@ export default function DashboardPage() {
                       </svg>
                     </div>
                     <div>
-                      <h4 className="text-lg font-semibold text-slate-800">{booking.classTitle}</h4>
+                      <h4 className="text-lg font-semibold text-white">{booking.classTitle}</h4>
                       {booking.classLocation && (
                         <p className={`text-sm font-medium ${getVillageColor(booking.classLocation).text}`}>
                           {booking.classLocation}
                         </p>
                       )}
-                      <p className="text-base text-slate-600" suppressHydrationWarning>
+                      <p className="text-base text-slate-400" suppressHydrationWarning>
                         {formatDateTime(booking.classStartTime)}
                       </p>
                     </div>
@@ -354,7 +355,7 @@ export default function DashboardPage() {
                   <button
                     onClick={() => openCancelModal(booking)}
                     disabled={cancellingId === booking.id}
-                    className="rounded-full border-2 border-red-200 bg-red-50 px-6 py-3 text-base font-semibold text-red-600 transition hover:border-red-300 hover:bg-red-100 disabled:opacity-50"
+                    className="rounded-full border-2 border-red-500/50 bg-red-500/20 px-6 py-3 text-base font-semibold text-red-300 transition hover:border-red-400 hover:bg-red-500/30 disabled:opacity-50"
                   >
                     {cancellingId === booking.id ? "..." : "Cancel"}
                   </button>
@@ -366,29 +367,29 @@ export default function DashboardPage() {
 
         {/* Past bookings */}
         <section>
-          <h3 className="mb-4 flex items-center gap-2 text-xl font-semibold text-slate-800">
-            <span className="h-2.5 w-2.5 rounded-full bg-slate-400" />
+          <h3 className="mb-4 flex items-center gap-2 text-xl font-semibold text-white">
+            <span className="h-2.5 w-2.5 rounded-full bg-slate-500" />
             Recent Attendance
           </h3>
           {pastBookings.length === 0 ? (
             <div className="glass-card rounded-2xl p-8 text-center">
-              <p className="text-lg text-slate-600">No past classes yet</p>
+              <p className="text-lg text-slate-400">No past classes yet</p>
             </div>
           ) : (
-            <div className="glass-card rounded-2xl divide-y divide-slate-200">
+            <div className="glass-card rounded-2xl divide-y divide-white/10">
               {pastBookings.map((booking) => (
                 <div
                   key={booking.id}
                   className="flex items-center justify-between p-5"
                 >
                   <div className="flex items-center gap-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400">
                       <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                     </div>
                     <div>
-                      <p className="text-lg font-medium text-slate-800">{booking.classTitle}</p>
+                      <p className="text-lg font-medium text-white">{booking.classTitle}</p>
                       {booking.classLocation && (
                         <p className={`text-sm ${getVillageColor(booking.classLocation).text}`}>
                           {booking.classLocation}
@@ -396,7 +397,7 @@ export default function DashboardPage() {
                       )}
                     </div>
                   </div>
-                  <p className="text-base text-slate-500" suppressHydrationWarning>
+                  <p className="text-base text-slate-300" suppressHydrationWarning>
                     {formatDate(booking.classStartTime)}
                   </p>
                 </div>
@@ -416,6 +417,8 @@ export default function DashboardPage() {
         cancelLabel="Keep Booking"
         variant="danger"
       />
+
+      <BottomNav />
     </div>
   );
 }

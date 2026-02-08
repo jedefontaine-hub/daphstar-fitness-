@@ -187,7 +187,7 @@ function BookingContent() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f5f5] px-4 py-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-teal-900 px-4 py-6">
       {/* Success Animation */}
       <SuccessAnimation
         show={showSuccessAnimation}
@@ -199,7 +199,7 @@ function BookingContent() {
       <PageTransition>
         <div className="mx-auto max-w-md">
           <div className="mb-4 flex items-center justify-between">
-            <a href="/" className="inline-flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-blue-500">
+            <a href="/" className="inline-flex items-center gap-1 text-sm font-medium text-slate-300 hover:text-teal-400">
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
@@ -208,45 +208,45 @@ function BookingContent() {
             <div className="flex items-center gap-2">
               <a
                 href="/calendar"
-                className="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
+                className="rounded-lg px-3 py-2 text-sm font-medium text-slate-300 hover:bg-white/10"
               >
                 Calendar
               </a>
               <a
                 href="/my-bookings"
-                className="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
+                className="rounded-lg px-3 py-2 text-sm font-medium text-slate-300 hover:bg-white/10"
               >
                 My Bookings
             </a>
           </div>
         </div>
 
-        <div className="rounded-lg bg-white p-6 shadow-sm">
+        <div className="rounded-xl glass-card p-6">
           <div className="mb-5">
-            <h1 className="text-xl font-bold text-gray-900">Book a Class</h1>
-            <p className="mt-2 text-sm text-gray-500">
+            <h1 className="text-xl font-bold text-white">Book a Class</h1>
+            <p className="mt-2 text-sm text-slate-400">
               Enter your details to reserve a spot.
             </p>
           </div>
 
           {selectedClass ? (
-            <div className="mb-5 rounded-lg border border-blue-100 bg-blue-50 p-4">
-              <p className="font-semibold text-gray-900">{selectedClass.title}</p>
-              <p className="text-sm text-gray-600" suppressHydrationWarning>
+            <div className="mb-5 rounded-lg border border-teal-500/30 bg-teal-500/10 p-4">
+              <p className="font-semibold text-white">{selectedClass.title}</p>
+              <p className="text-sm text-slate-300" suppressHydrationWarning>
                 {new Date(selectedClass.startTime).toLocaleString()} -{" "}
                 {new Date(selectedClass.endTime).toLocaleTimeString([], {
                   hour: "numeric",
                   minute: "2-digit",
                 })}
               </p>
-              <p className={`mt-2 text-sm font-semibold ${selectedClass.spotsLeft > 0 ? 'text-green-600' : 'text-red-600'}`}>
+              <p className={`mt-2 text-sm font-semibold ${selectedClass.spotsLeft > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                 {selectedClass.spotsLeft} spots left
               </p>
               
               {/* Attendee avatars */}
               {attendees.length > 0 && (
-                <div className="mt-3 border-t border-blue-100 pt-3">
-                  <p className="text-xs text-gray-500 mb-2">Already signed up:</p>
+                <div className="mt-3 border-t border-teal-500/30 pt-3">
+                  <p className="text-xs text-slate-400 mb-2">Already signed up:</p>
                   <div className="flex flex-wrap gap-1">
                     {attendees.map((attendee) => (
                       <div
@@ -269,9 +269,9 @@ function BookingContent() {
               )}
             </div>
           ) : fallbackSummary ? (
-            <div className="mb-5 rounded-lg border border-blue-100 bg-blue-50 p-4">
-              <p className="font-semibold text-gray-900">{fallbackSummary.title}</p>
-              <p className="text-sm text-gray-600" suppressHydrationWarning>
+            <div className="mb-5 rounded-lg border border-teal-500/30 bg-teal-500/10 p-4">
+              <p className="font-semibold text-white">{fallbackSummary.title}</p>
+              <p className="text-sm text-slate-300" suppressHydrationWarning>
                 {new Date(fallbackSummary.startTime).toLocaleString()} -{" "}
                 {new Date(fallbackSummary.endTime).toLocaleTimeString([], {
                   hour: "numeric",
@@ -279,7 +279,7 @@ function BookingContent() {
                 })}
               </p>
               {fallbackSummary.spotsLeft !== null ? (
-                <p className="mt-2 text-sm font-semibold text-green-600">
+                <p className="mt-2 text-sm font-semibold text-emerald-400">
                   {fallbackSummary.spotsLeft} spots left
                 </p>
               ) : null}
@@ -287,23 +287,23 @@ function BookingContent() {
           ) : null}
 
           {isLoggedIn ? (
-            <div className="mb-4 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">
+            <div className="mb-4 rounded-lg bg-emerald-500/20 border border-emerald-500/30 px-4 py-3 text-sm text-emerald-300">
               <p className="font-semibold">✓ Logged in as {customerName}</p>
-              <p className="text-green-600 mt-1">Your details have been pre-filled.</p>
+              <p className="text-emerald-400 mt-1">Your details have been pre-filled.</p>
             </div>
           ) : (
-            <div className="mb-4 rounded-lg bg-blue-50 px-4 py-3 text-sm text-blue-700">
-              <a href="/login" className="font-semibold hover:text-blue-900">
+            <div className="mb-4 rounded-lg bg-teal-500/20 border border-teal-500/30 px-4 py-3 text-sm text-teal-300">
+              <a href="/login" className="font-semibold hover:text-teal-200">
                 Sign in to book faster →
               </a>
             </div>
           )}
 
           <form className="grid gap-4" onSubmit={handleSubmit}>
-            <label className="grid gap-1.5 text-sm font-medium text-gray-700">
+            <label className="grid gap-1.5 text-sm font-medium text-slate-300">
               Retirement Village
               <select
-                className="h-12 rounded-lg border border-gray-200 px-3 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                className="input-dark h-12 rounded-lg px-3 text-sm"
                 value={retirementVillage}
                 onChange={(event) => setRetirementVillage(event.target.value)}
               >
@@ -316,10 +316,10 @@ function BookingContent() {
                 <option value="Independent">Independent / Other</option>
               </select>
             </label>
-            <label className="grid gap-1.5 text-sm font-medium text-gray-700">
+            <label className="grid gap-1.5 text-sm font-medium text-slate-300">
               Class
               <select
-                className="h-12 rounded-lg border border-gray-200 px-3 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                className="input-dark h-12 rounded-lg px-3 text-sm"
                 value={classId}
                 onChange={(event) => setClassId(event.target.value)}
               >
@@ -334,20 +334,20 @@ function BookingContent() {
                 )}
               </select>
             </label>
-            <label className="grid gap-1.5 text-sm font-medium text-gray-700">
+            <label className="grid gap-1.5 text-sm font-medium text-slate-300">
               Full name
               <input
-                className="h-12 rounded-lg border border-gray-200 px-3 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                className="input-dark h-12 rounded-lg px-3 text-sm"
                 placeholder="Margaret Wilson"
                 type="text"
                 value={customerName}
                 onChange={(event) => setCustomerName(event.target.value)}
               />
             </label>
-            <label className="grid gap-1.5 text-sm font-medium text-gray-700">
+            <label className="grid gap-1.5 text-sm font-medium text-slate-300">
               Email
               <input
-                className="h-12 rounded-lg border border-gray-200 px-3 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                className="input-dark h-12 rounded-lg px-3 text-sm"
                 placeholder="margaret@example.com"
                 type="email"
                 value={customerEmail}
@@ -356,35 +356,35 @@ function BookingContent() {
             </label>
 
             {status.state === "error" && (
-              <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+              <div className="rounded-lg bg-red-500/20 border border-red-500/30 px-4 py-3 text-sm text-red-300">
                 {status.message}
                 {status.message.includes("already booked") && (
                   <span>
                     {" "}View your bookings in{" "}
-                    <a href="/my-bookings" className="font-medium underline hover:text-red-800">My Bookings</a>.
+                    <a href="/my-bookings" className="font-medium underline hover:text-red-200">My Bookings</a>.
                   </span>
                 )}
               </div>
             )}
 
             {status.state === "success" && (
-              <div className="rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">
+              <div className="rounded-lg bg-emerald-500/20 border border-emerald-500/30 px-4 py-3 text-sm text-emerald-300">
                 <p className="font-semibold">🎉 Booking confirmed!</p>
                 <p className="mt-1">
                   Check your email for confirmation. You can manage your bookings in{" "}
-                  <a href="/my-bookings" className="font-medium underline hover:text-green-800">My Bookings</a>.
+                  <a href="/my-bookings" className="font-medium underline hover:text-emerald-200">My Bookings</a>.
                 </p>
               </div>
             )}
 
             {isFull && (
-              <div className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-700">
+              <div className="rounded-lg bg-amber-500/20 border border-amber-500/30 px-4 py-3 text-sm text-amber-300">
                 This class is full. Please choose another.
               </div>
             )}
 
             <button
-              className="mt-2 h-12 w-full rounded-lg bg-blue-500 text-sm font-semibold text-white hover:bg-blue-600 disabled:bg-gray-300"
+              className="btn-glow mt-2 h-12 w-full rounded-full text-sm font-semibold text-white disabled:opacity-50"
               type="submit"
               disabled={
                 status.state === "loading" || classes.length === 0 || isFull
@@ -411,11 +411,11 @@ export default function BookingPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#f5f5f5] px-4 py-6">
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-teal-900 px-4 py-6">
           <div className="mx-auto max-w-md">
-            <div className="rounded-lg bg-white p-6 shadow-sm">
+            <div className="rounded-xl glass-card p-6">
               <div className="flex items-center justify-center py-8">
-                <div className="h-8 w-8 animate-spin rounded-full border-3 border-blue-500 border-t-transparent" />
+                <div className="h-8 w-8 animate-spin rounded-full border-3 border-teal-500 border-t-transparent" />
               </div>
             </div>
           </div>

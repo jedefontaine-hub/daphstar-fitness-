@@ -95,7 +95,7 @@ export default function AdminLoginPage() {
             </button>
           </form>
 
-          <p className="mt-6 text-center text-xs text-slate-500">
+          <p className="mt-6 text-center text-xs text-slate-400">
             Default password: <code className="rounded bg-white/5 px-1.5 py-0.5 font-mono">admin123</code>
           </p>
         </div>

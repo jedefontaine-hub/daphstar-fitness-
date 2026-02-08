@@ -272,7 +272,7 @@ export default function AdminPage() {
                         ? "bg-slate-500/20" 
                         : "bg-gradient-to-br from-purple-500/20 to-fuchsia-500/20"
                     }`}>
-                      <svg className={`h-6 w-6 ${isCancelled ? 'text-slate-500' : 'text-purple-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className={`h-6 w-6 ${isCancelled ? 'text-slate-400' : 'text-purple-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                       </svg>
                     </div>
@@ -520,7 +520,7 @@ export default function AdminPage() {
                 </h2>
                 {modal.attendees.length === 0 ? (
                   <div className="mt-6 rounded-xl border border-white/5 bg-white/[0.02] p-6 text-center">
-                    <p className="text-sm text-slate-500">No attendees yet.</p>
+                    <p className="text-sm text-slate-400">No attendees yet.</p>
                   </div>
                 ) : (
                   <ul className="mt-4 divide-y divide-white/5">

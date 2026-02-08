@@ -49,7 +49,7 @@ export function SuccessAnimation({
     >
       <div
         className={`
-          flex flex-col items-center rounded-2xl bg-white p-8 shadow-2xl
+          flex flex-col items-center rounded-2xl bg-slate-800/95 backdrop-blur-xl border border-white/10 p-8 shadow-2xl
           transform transition-all duration-300
           ${isLeaving ? "scale-95 opacity-0" : "scale-100 opacity-100"}
         `}
