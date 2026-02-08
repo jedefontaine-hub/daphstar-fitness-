@@ -3,6 +3,10 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { createBooking, fetchClasses, type ClassSummary } from "@/lib/api";
+import { SuccessAnimation } from "@/components/ui/SuccessAnimation";
+import { useToast } from "@/components/ui/Toast";
+import { PageTransition } from "@/components/ui/PageTransition";
+import { SkeletonProfileForm } from "@/components/ui/Skeleton";
 
 type BookingStatus =
   | { state: "idle" }
@@ -66,6 +70,7 @@ function formatDate(value: Date): string {
 
 function BookingContent() {
   const searchParams = useSearchParams();
+  const toast = useToast();
   const preferredClassId = searchParams.get("classId");
   const fallbackTitle = searchParams.get("title");
   const fallbackStart = searchParams.get("startTime");
@@ -79,6 +84,7 @@ function BookingContent() {
   const [status, setStatus] = useState<BookingStatus>({ state: "idle" });
   const [hasLoaded, setHasLoaded] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
   const [attendees, setAttendees] = useState<Attendee[]>([]);
   const selectedClass = classes.find((item) => item.id === classId);
   const isFull = selectedClass ? selectedClass.spotsLeft === 0 : false;
@@ -156,10 +162,7 @@ function BookingContent() {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!classId || !customerName || !customerEmail) {
-      setStatus({
-        state: "error",
-        message: "Please complete all fields before booking.",
-      });
+      toast.error("Please complete all fields before booking.");
       return;
     }
 
@@ -171,38 +174,49 @@ function BookingContent() {
         customerEmail,
         retirementVillage: retirementVillage || undefined,
       });
+      setShowSuccessAnimation(true);
       setStatus({ state: "success", cancelToken: result.cancelToken });
     } catch (error) {
       const message =
         error instanceof Error
           ? error.message
           : "Unable to create booking.";
+      toast.error(message);
       setStatus({ state: "error", message });
     }
   };
 
   return (
     <div className="min-h-screen bg-[#f5f5f5] px-4 py-6">
-      <div className="mx-auto max-w-md">
-        <div className="mb-4 flex items-center justify-between">
-          <a href="/" className="inline-flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-blue-500">
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back
-          </a>
-          <div className="flex items-center gap-2">
-            <a
-              href="/calendar"
-              className="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
-            >
-              Calendar
+      {/* Success Animation */}
+      <SuccessAnimation
+        show={showSuccessAnimation}
+        message="Booking Confirmed!"
+        subMessage="Check your email for details"
+        onComplete={() => setShowSuccessAnimation(false)}
+      />
+      
+      <PageTransition>
+        <div className="mx-auto max-w-md">
+          <div className="mb-4 flex items-center justify-between">
+            <a href="/" className="inline-flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-blue-500">
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Back
             </a>
-            <a
-              href="/my-bookings"
-              className="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
-            >
-              My Bookings
+            <div className="flex items-center gap-2">
+              <a
+                href="/calendar"
+                className="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
+              >
+                Calendar
+              </a>
+              <a
+                href="/my-bookings"
+                className="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
+              >
+                My Bookings
             </a>
           </div>
         </div>
@@ -387,7 +401,8 @@ function BookingContent() {
             </button>
           </form>
         </div>
-      </div>
+        </div>
+      </PageTransition>
     </div>
   );
 }

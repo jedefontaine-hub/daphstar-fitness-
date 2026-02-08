@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { getCustomerById, updateCustomerProfile } from "@/lib/store";
+import { getCustomerById, updateCustomerProfile } from "@/lib/db-store";
 
 export async function GET() {
   const cookieStore = await cookies();
@@ -12,7 +12,7 @@ export async function GET() {
   
   try {
     const session = JSON.parse(sessionCookie.value);
-    const customer = getCustomerById(session.customerId);
+    const customer = await getCustomerById(session.customerId);
     
     if (!customer) {
       return NextResponse.json({ error: "not_found" }, { status: 404 });
@@ -36,7 +36,7 @@ export async function PUT(request: Request) {
     const session = JSON.parse(sessionCookie.value);
     const body = await request.json();
     
-    const result = updateCustomerProfile(session.customerId, {
+    const result = await updateCustomerProfile(session.customerId, {
       name: body.name,
       email: body.email,
       retirementVillage: body.retirementVillage,

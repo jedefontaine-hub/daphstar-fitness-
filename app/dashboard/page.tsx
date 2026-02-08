@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { cancelBooking } from "@/lib/api";
+import { ConfirmModal } from "@/components/ui/Modal";
+import { useToast } from "@/components/ui/Toast";
 
 type DashboardBooking = {
   id: string;
@@ -79,8 +81,16 @@ function formatDate(iso: string): string {
 
 export default function DashboardPage() {
   const router = useRouter();
+  const toast = useToast();
   const [status, setStatus] = useState<LoadStatus>({ state: "loading" });
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [bookingToCancel, setBookingToCancel] = useState<DashboardBooking | null>(null);
+
+  const openCancelModal = (booking: DashboardBooking) => {
+    setBookingToCancel(booking);
+    setCancelModalOpen(true);
+  };
 
   useEffect(() => {
     fetch("/api/dashboard")
@@ -102,12 +112,14 @@ export default function DashboardPage() {
       });
   }, []);
 
-  const handleCancel = async (booking: DashboardBooking) => {
-    if (!confirm(`Cancel your booking for ${booking.classTitle}?`)) return;
+  const handleCancel = async () => {
+    if (!bookingToCancel) return;
 
-    setCancellingId(booking.id);
+    setCancelModalOpen(false);
+    setCancellingId(bookingToCancel.id);
     try {
-      await cancelBooking(booking.cancelToken);
+      await cancelBooking(bookingToCancel.cancelToken);
+      toast.success("Booking cancelled successfully");
       // Refresh dashboard
       const res = await fetch("/api/dashboard");
       if (res.ok) {
@@ -115,9 +127,10 @@ export default function DashboardPage() {
         setStatus({ state: "ready", data });
       }
     } catch {
-      alert("Failed to cancel booking. Please try again.");
+      toast.error("Failed to cancel booking. Please try again.");
     } finally {
       setCancellingId(null);
+      setBookingToCancel(null);
     }
   };
 
@@ -339,7 +352,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   <button
-                    onClick={() => handleCancel(booking)}
+                    onClick={() => openCancelModal(booking)}
                     disabled={cancellingId === booking.id}
                     className="rounded-full border-2 border-red-200 bg-red-50 px-6 py-3 text-base font-semibold text-red-600 transition hover:border-red-300 hover:bg-red-100 disabled:opacity-50"
                   >
@@ -392,6 +405,17 @@ export default function DashboardPage() {
           )}
         </section>
       </main>
+
+      <ConfirmModal
+        isOpen={cancelModalOpen}
+        onClose={() => setCancelModalOpen(false)}
+        onConfirm={handleCancel}
+        title="Cancel Booking?"
+        message={`Are you sure you want to cancel your booking for ${bookingToCancel?.classTitle || "this class"}?`}
+        confirmLabel="Yes, Cancel"
+        cancelLabel="Keep Booking"
+        variant="danger"
+      />
     </div>
   );
 }

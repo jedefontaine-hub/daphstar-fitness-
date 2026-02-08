@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCustomersWithBirthdayToday } from "@/lib/store";
+import { getCustomersWithBirthdayToday } from "@/lib/db-store";
 import { sendBirthdayEmail } from "@/lib/email";
 
 // This endpoint can be called by a cron job (e.g., Vercel Cron, GitHub Actions, or external service)
@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     }
   }
 
-  const birthdayCustomers = getCustomersWithBirthdayToday();
+  const birthdayCustomers = await getCustomersWithBirthdayToday();
   
   if (birthdayCustomers.length === 0) {
     return NextResponse.json({
@@ -61,7 +61,7 @@ export async function GET(request: Request) {
     }
   }
 
-  const birthdayCustomers = getCustomersWithBirthdayToday();
+  const birthdayCustomers = await getCustomersWithBirthdayToday();
   
   return NextResponse.json({
     message: "Birthday check",

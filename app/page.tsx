@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 import { fetchClasses, type ClassSummary } from "@/lib/api";
 import { PageHeader } from "@/components/PageHeader";
-import { LoadingSection } from "@/components/ui/Spinner";
-import { ErrorAlert } from "@/components/ui/Alert";
+import { SkeletonSchedule, SkeletonLeaderboard } from "@/components/ui/Skeleton";
+import { NoClassesFound, ErrorState } from "@/components/ui/EmptyState";
+import { PageTransition, FadeIn } from "@/components/ui/PageTransition";
 import { formatTime, formatDuration, formatDateHeader, getDateKey } from "@/lib/utils/date";
-import { getVillageColor } from "@/lib/constants";
 
 type ScheduleStatus =
   | { state: "loading" }
@@ -34,8 +34,9 @@ export default function Home() {
   const [classes, setClasses] = useState<ClassSummary[]>([]);
   const [status, setStatus] = useState<ScheduleStatus>({ state: "loading" });
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(true);
 
-  useEffect(() => {
+  const loadData = () => {
     const now = new Date();
     const to = new Date();
     to.setDate(now.getDate() + 7);
@@ -43,6 +44,7 @@ export default function Home() {
     const fromParam = now.toISOString().split("T")[0] ?? "";
     const toParam = to.toISOString().split("T")[0] ?? "";
 
+    setStatus({ state: "loading" });
     fetchClasses(fromParam, toParam)
       .then((data) => {
         setClasses(data.filter((item) => item.status === "scheduled"));
@@ -56,28 +58,31 @@ export default function Home() {
       });
 
     // Fetch leaderboard
+    setLeaderboardLoading(true);
     fetch("/api/leaderboard")
       .then((res) => res.json())
       .then((data) => setLeaderboard(data.leaderboard || []))
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setLeaderboardLoading(false));
+  };
+
+  useEffect(() => {
+    loadData();
   }, []);
 
   return (
     <div className="min-h-screen bg-[#f5f5f5]">
       <PageHeader subtitle="Class Schedule" />
 
-      <main className="mx-auto max-w-3xl px-4 py-6">
-        {/* Classes list grouped by date */}
-        <div className="space-y-2">
-          {status.state === "loading" && <LoadingSection />}
+      <PageTransition>
+        <main className="mx-auto max-w-3xl px-4 py-6">
+          {/* Classes list grouped by date */}
+          <div className="space-y-2">
+            {status.state === "loading" && <SkeletonSchedule days={3} classesPerDay={2} />}
 
-          {status.state === "error" && <ErrorAlert message={status.message} />}
+            {status.state === "error" && <ErrorState onRetry={loadData} />}
 
-          {status.state === "ready" && classes.length === 0 && (
-            <div className="py-12 text-center text-gray-500">
-              No classes scheduled for the next 7 days.
-            </div>
-          )}
+            {status.state === "ready" && classes.length === 0 && <NoClassesFound />}
 
           {status.state === "ready" && classes.length > 0 && (
             <>
@@ -169,7 +174,7 @@ export default function Home() {
         </div>
 
         {/* Leaderboard */}
-        {leaderboard.length > 0 && (
+        <FadeIn delay={200}>
           <section className="mt-6 rounded-lg bg-white p-4 shadow-sm">
             <div className="mb-4 flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100">
@@ -183,16 +188,19 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              {leaderboard.map((entry, index) => {
-                const medalColors = [
-                  "bg-amber-400", // Gold
-                  "bg-gray-300",  // Silver
-                  "bg-amber-600", // Bronze
-                ];
-                const isTop3 = index < 3;
-                
-                return (
+            {leaderboardLoading ? (
+              <SkeletonLeaderboard entries={5} />
+            ) : leaderboard.length > 0 ? (
+              <div className="space-y-2">
+                {leaderboard.map((entry, index) => {
+                  const medalColors = [
+                    "bg-amber-400", // Gold
+                    "bg-gray-300",  // Silver
+                    "bg-amber-600", // Bronze
+                  ];
+                  const isTop3 = index < 3;
+                  
+                  return (
                   <div
                     key={entry.customerName}
                     className="flex items-center gap-3 rounded-lg bg-gray-50 p-3"
@@ -218,38 +226,44 @@ export default function Home() {
                 );
               })}
             </div>
+            ) : (
+              <p className="text-center text-sm text-gray-500 py-4">No leaderboard data yet</p>
+            )}
           </section>
-        )}
+        </FadeIn>
 
         {/* Quick links */}
-        <section className="mt-6 grid gap-3 sm:grid-cols-2">
-          <div className="rounded-lg bg-white p-4 shadow-sm">
-            <h3 className="text-sm font-semibold text-gray-900">Booking Policies</h3>
-            <ul className="mt-2 space-y-1 text-sm text-gray-600">
-              <li className="flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
-                Cancel up to 6 hours before class
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
-                No-shows may be subject to a fee
-              </li>
-            </ul>
-          </div>
-          <div className="rounded-lg bg-white p-4 shadow-sm">
-            <h3 className="text-sm font-semibold text-gray-900">Need Help?</h3>
-            <p className="mt-2 text-sm text-gray-600">
-              Check your email for cancellation links.
-            </p>
-            <a href="/cancel" className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-blue-500 hover:text-blue-600">
-              Cancel a booking
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </a>
-          </div>
-        </section>
-      </main>
+        <FadeIn delay={300}>
+          <section className="mt-6 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-lg bg-white p-4 shadow-sm">
+              <h3 className="text-sm font-semibold text-gray-900">Booking Policies</h3>
+              <ul className="mt-2 space-y-1 text-sm text-gray-600">
+                <li className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                  Cancel up to 6 hours before class
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                  No-shows may be subject to a fee
+                </li>
+              </ul>
+            </div>
+            <div className="rounded-lg bg-white p-4 shadow-sm">
+              <h3 className="text-sm font-semibold text-gray-900">Need Help?</h3>
+              <p className="mt-2 text-sm text-gray-600">
+                Check your email for cancellation links.
+              </p>
+              <a href="/cancel" className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-blue-500 hover:text-blue-600">
+                Cancel a booking
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </a>
+            </div>
+          </section>
+        </FadeIn>
+        </main>
+      </PageTransition>
     </div>
   );
 }

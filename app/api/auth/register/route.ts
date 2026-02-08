@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { registerCustomer } from "@/lib/store";
+import { registerCustomer } from "@/lib/db-store";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid_input" }, { status: 400 });
   }
   
-  const result = registerCustomer({ name, email, password, retirementVillage });
+  const result = await registerCustomer({ name, email, password, retirementVillage });
   
   if (!result.ok) {
     const status = result.error === "email_exists" ? 409 : 400;
