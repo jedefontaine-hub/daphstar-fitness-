@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BottomNav } from "@/components/BottomNav";
 
+import { useSession } from "@/lib/session-context";
+
 interface ProfileData {
   id: string;
   name: string;
@@ -24,6 +26,12 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [profile, setProfile] = useState<ProfileData | null>(null);
+
+  const { logout } = useSession();
+  const handleLogout = async () => {
+    await logout();
+    router.push("/login");
+  };
 
   // Form state
   const [name, setName] = useState("");
@@ -151,6 +159,15 @@ export default function ProfilePage() {
 
       {/* Main Content */}
       <main className="max-w-3xl mx-auto px-4 py-6">
+        {/* Logout Button */}
+        <div className="flex justify-end mb-6">
+          <button
+            onClick={handleLogout}
+            className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-6 rounded-full shadow transition-colors"
+          >
+            Sign Out
+          </button>
+        </div>
         {/* Success Message */}
         {success && (
           <div className="mb-6 bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 px-4 py-3 rounded-lg flex items-center gap-2">

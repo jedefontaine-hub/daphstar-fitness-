@@ -1,12 +1,19 @@
 "use client";
 
+
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "@/lib/session-context";
 
 export function BottomNav() {
   const pathname = usePathname();
-  const { customer } = useSession();
+  const router = useRouter();
+  const { customer, logout } = useSession();
+
+  const handleLogout = async () => {
+    await logout();
+    router.push("/login");
+  };
 
   const navItems = [
     {
@@ -33,6 +40,15 @@ export function BottomNav() {
       icon: (active: boolean) => (
         <svg className="h-6 w-6" fill={active ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={active ? 0 : 2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+        </svg>
+      ),
+    },
+    {
+      href: "/admin",
+      label: "Admin",
+      icon: (active: boolean) => (
+        <svg className="h-6 w-6" fill={active ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={active ? 0 : 2} d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
         </svg>
       ),
     },
@@ -65,6 +81,20 @@ export function BottomNav() {
             </Link>
           );
         })}
+        {/* Logout button, only show if logged in */}
+        {customer && (
+          <button
+            onClick={handleLogout}
+            className="flex flex-col items-center gap-1 py-2 transition text-white/60 hover:text-red-400 focus:outline-none"
+            style={{ background: "none", border: "none" }}
+            aria-label="Sign Out"
+          >
+            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h4a2 2 0 012 2v1" />
+            </svg>
+            <span className="text-xs">Sign Out</span>
+          </button>
+        )}
       </div>
     </nav>
   );
