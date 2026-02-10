@@ -100,18 +100,8 @@ export default function Home() {
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-teal-400">Daphstar Fitness</p>
             </div>
-            {customer ? (
-              <Link href="/profile" className="flex items-center gap-2 rounded-full bg-teal-500/20 border border-teal-400/50 px-3 py-1.5 backdrop-blur-sm hover:bg-teal-500/30 transition">
-                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-teal-400 to-cyan-500 flex items-center justify-center text-sm font-bold text-slate-900 shadow-lg shadow-teal-500/30">
-                  {getInitials(customer.name)}
-                </div>
-                <span className="text-sm font-medium text-teal-300 hidden sm:inline">{customer.name.split(' ')[0]}</span>
-              </Link>
-            ) : (
-              <Link href="/login" className="rounded-full bg-teal-500 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-teal-500/30 hover:bg-teal-400 transition">
-                Sign In
-              </Link>
-            )}
+            {/* Hide the dashboard page's profile button if GlobalProfileButton is present */}
+            <div className="h-10" />
           </div>
         </header>
 
@@ -122,44 +112,7 @@ export default function Home() {
           </h1>
           <p className="mt-1 text-white/70">Find your next fitness class</p>
 
-          {/* Hero cards */}
-          <div className="mt-6 flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
-            <Link href="/calendar" className="relative flex-shrink-0 w-40 h-28 rounded-2xl overflow-hidden group">
-              <div className="absolute inset-0 bg-gradient-to-br from-teal-500 to-cyan-600" />
-              <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iZ3JpZCIgd2lkdGg9IjIwIiBoZWlnaHQ9IjIwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNIDIwIDAgTCAwIDAgMCAyMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLW9wYWNpdHk9IjAuMSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-50" />
-              <div className="relative h-full flex flex-col justify-end p-3">
-                <svg className="h-6 w-6 text-white/80 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <p className="text-white font-semibold text-sm">Full Calendar</p>
-                <p className="text-white/70 text-xs">View all classes</p>
-              </div>
-            </Link>
-            
-            <Link href="/my-bookings" className="relative flex-shrink-0 w-40 h-28 rounded-2xl overflow-hidden group">
-              <div className="absolute inset-0 bg-gradient-to-br from-violet-500 to-purple-600" />
-              <div className="relative h-full flex flex-col justify-end p-3">
-                <svg className="h-6 w-6 text-white/80 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                </svg>
-                <p className="text-white font-semibold text-sm">My Bookings</p>
-                <p className="text-white/70 text-xs">Manage your classes</p>
-              </div>
-            </Link>
-
-            {customer && (
-              <Link href="/dashboard" className="relative flex-shrink-0 w-40 h-28 rounded-2xl overflow-hidden group">
-                <div className="absolute inset-0 bg-gradient-to-br from-amber-500 to-orange-600" />
-                <div className="relative h-full flex flex-col justify-end p-3">
-                  <svg className="h-6 w-6 text-white/80 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                  <p className="text-white font-semibold text-sm">My Stats</p>
-                  <p className="text-white/70 text-xs">Track progress</p>
-                </div>
-              </Link>
-            )}
-          </div>
+          {/* Removed hero cards */}
         </div>
       </div>
 

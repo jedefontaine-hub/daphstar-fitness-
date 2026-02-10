@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSession } from "@/lib/session-context";
 import { cancelBooking } from "@/lib/api";
 import { ConfirmModal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
@@ -44,12 +45,34 @@ function isUpcoming(iso: string): boolean {
 
 export default function MyBookingsPage() {
   const toast = useToast();
+  const { customer } = useSession();
   const [email, setEmail] = useState("");
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [status, setStatus] = useState<LookupStatus>({ state: "idle" });
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [bookingToCancel, setBookingToCancel] = useState<Booking | null>(null);
+
+  // If logged in, auto-fetch bookings for the logged-in user
+  useEffect(() => {
+    if (customer && customer.email) {
+      setEmail(customer.email);
+      setStatus({ state: "loading" });
+      fetch(`/api/bookings/lookup?email=${encodeURIComponent(customer.email)}`)
+        .then((res) => {
+          if (!res.ok) throw new Error("Failed to fetch");
+          return res.json();
+        })
+        .then((data) => {
+          setBookings(data.bookings);
+          setStatus({ state: "ready" });
+        })
+        .catch(() => {
+          toast.error("Unable to look up bookings. Try again.");
+          setStatus({ state: "error", message: "Unable to look up bookings. Try again." });
+        });
+    }
+  }, [customer]);
 
   const handleLookup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -145,40 +168,43 @@ export default function MyBookingsPage() {
 
       <main className="relative mx-auto max-w-2xl px-6 py-10">
         {/* Lookup form */}
-        <div className="glass-card rounded-3xl p-6 mb-8">
-          <h2 className="text-xl font-semibold text-white mb-2">Look Up Your Bookings</h2>
-          <p className="text-base text-slate-400 mb-4">
-            Enter the email address you used when booking to view and manage your reservations.
-          </p>
-          <form onSubmit={handleLookup} className="flex flex-col sm:flex-row gap-3">
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="your@email.com"
-              className="input-dark flex-1 h-14 rounded-xl px-4 text-base"
-            />
-            <button
-              type="submit"
-              disabled={status.state === "loading"}
-              className="btn-glow h-14 rounded-full px-8 text-base font-semibold text-white whitespace-nowrap"
-            >
-              {status.state === "loading" ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                  Looking up...
-                </span>
-              ) : (
-                "Find Bookings"
-              )}
-            </button>
-          </form>
-          {status.state === "error" && (
-            <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/20 px-5 py-4 text-base text-red-300">
-              {status.message}
-            </div>
-          )}
-        </div>
+        {/* Only show lookup form if not logged in */}
+        {!customer && (
+          <div className="glass-card rounded-3xl p-6 mb-8">
+            <h2 className="text-xl font-semibold text-white mb-2">Look Up Your Bookings</h2>
+            <p className="text-base text-slate-400 mb-4">
+              Enter the email address you used when booking to view and manage your reservations.
+            </p>
+            <form onSubmit={handleLookup} className="flex flex-col sm:flex-row gap-3">
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="your@email.com"
+                className="input-dark flex-1 h-14 rounded-xl px-4 text-base"
+              />
+              <button
+                type="submit"
+                disabled={status.state === "loading"}
+                className="btn-glow h-14 rounded-full px-8 text-base font-semibold text-white whitespace-nowrap"
+              >
+                {status.state === "loading" ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                    Looking up...
+                  </span>
+                ) : (
+                  "Find Bookings"
+                )}
+              </button>
+            </form>
+            {status.state === "error" && (
+              <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/20 px-5 py-4 text-base text-red-300">
+                {status.message}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Results */}
         {status.state === "ready" && (

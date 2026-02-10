@@ -1,8 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { Providers } from "@/components/Providers";
+
+import Providers from "@/components/Providers";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
+import GlobalProfileButton from "@/components/GlobalProfileButton";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -47,7 +49,10 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-50 text-slate-900`}
       >
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <GlobalProfileButton />
+        </Providers>
         <ServiceWorkerRegistration />
       </body>
     </html>
