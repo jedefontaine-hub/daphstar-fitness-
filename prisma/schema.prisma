@@ -33,6 +33,7 @@ model Booking {
   customerEmail     String
   retirementVillage String?
   status            String    @default("active")
+  attendanceStatus  String    @default("pending") // 'pending', 'attended', 'absent'
   cancelToken       String    @unique @default(cuid())
   createdAt         DateTime  @default(now())
   cancelledAt       DateTime?

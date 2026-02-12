@@ -270,18 +270,19 @@ export async function cancelClass(id: string): Promise<ClassItem | null> {
 
 export async function listAttendees(
   classId: string
-): Promise<{ id: string; customerName: string; customerEmail: string; createdAt: string }[]> {
-  const bookings = await prisma.booking.findMany({
-    where: { classId, status: "active" },
-    select: { id: true, customerName: true, customerEmail: true, createdAt: true },
-  });
+  ): Promise<{ id: string; customerName: string; customerEmail: string; createdAt: string; attendanceStatus: string }[]> {
+    const bookings = await prisma.booking.findMany({
+      where: { classId, status: "active" },
+      select: { id: true, customerName: true, customerEmail: true, createdAt: true, attendanceStatus: true },
+    });
   
-  return bookings.map((b) => ({
-    id: b.id,
-    customerName: b.customerName,
-    customerEmail: b.customerEmail,
-    createdAt: b.createdAt.toISOString(),
-  }));
+    return bookings.map((b) => ({
+      id: b.id,
+      customerName: b.customerName,
+      customerEmail: b.customerEmail,
+      createdAt: b.createdAt.toISOString(),
+      attendanceStatus: b.attendanceStatus,
+    }));
 }
 
 // ---------- Customer Booking Lookup ----------
@@ -332,8 +333,8 @@ export type LeaderboardEntry = {
 
 export async function getLeaderboard(limit = 10): Promise<LeaderboardEntry[]> {
   const now = new Date();
-  
-  // Get all active bookings for past classes
+
+  // Get all active bookings for past classes (compare with local now)
   const bookings = await prisma.booking.findMany({
     where: {
       status: "active",

@@ -116,6 +116,7 @@ export type Attendee = {
   customerName: string;
   customerEmail: string;
   createdAt: string;
+  attendanceStatus?: string;
 };
 
 export async function fetchAdminClasses(

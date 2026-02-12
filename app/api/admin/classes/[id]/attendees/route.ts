@@ -11,5 +11,13 @@ export async function GET(_request: Request, context: Params) {
 
   const { id } = await context.params;
   const attendees = await listAttendees(id);
-  return NextResponse.json({ attendees });
+  // Ensure attendanceStatus is present for each attendee
+  const adminAttendees = attendees.map((a) => ({
+    id: a.id,
+    customerName: a.customerName,
+    customerEmail: a.customerEmail,
+    createdAt: a.createdAt,
+    attendanceStatus: a.attendanceStatus,
+  }));
+  return NextResponse.json({ attendees: adminAttendees });
 }

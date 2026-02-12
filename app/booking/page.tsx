@@ -17,6 +17,7 @@ type BookingStatus =
 type Attendee = {
   id: string;
   name: string;
+  attendanceStatus?: string; // 'pending', 'attended', 'absent'
 };
 
 // Color palette for attendee avatars - expanded for more variety
@@ -159,6 +160,27 @@ function BookingContent() {
       .catch(() => setAttendees([]));
   }, [classId]);
 
+  // Toggle attendance status for an attendee
+  const handleToggleAttendance = async (attendee: Attendee) => {
+    const newStatus = attendee.attendanceStatus === "attended" ? "absent" : "attended";
+    try {
+      const res = await fetch(`/api/classes/${classId}/attendees`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ attendeeId: attendee.id, attendanceStatus: newStatus }),
+      });
+      if (!res.ok) throw new Error("Failed to update attendance");
+      setAttendees((prev) =>
+        prev.map((a) =>
+          a.id === attendee.id ? { ...a, attendanceStatus: newStatus } : a
+        )
+      );
+      toast.success(`Marked as ${newStatus}`);
+    } catch {
+      toast.error("Could not update attendance");
+    }
+  };
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!classId || !customerName || !customerEmail) {
@@ -247,21 +269,28 @@ function BookingContent() {
               {attendees.length > 0 && (
                 <div className="mt-3 border-t border-teal-500/30 pt-3">
                   <p className="text-xs text-slate-400 mb-2">Already signed up:</p>
-                  <div className="flex flex-wrap gap-1">
+                  <div className="flex flex-col gap-2">
                     {attendees.map((attendee) => (
-                      <div
-                        key={attendee.id}
-                        className={`group relative flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold text-white cursor-default ${getAvatarColor(attendee.name)}`}
-                        title={attendee.name}
-                      >
-                        {getInitials(attendee.name)}
-                        {/* Tooltip */}
-                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-10">
-                          <div className="whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-xs text-white shadow-lg">
-                            {attendee.name}
-                          </div>
-                          <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900" />
+                      <div key={attendee.id} className="flex items-center gap-3 p-2 rounded-lg bg-white/5">
+                        <div
+                          className={`group relative flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold text-white cursor-default ${getAvatarColor(attendee.name)}`}
+                          title={attendee.name}
+                        >
+                          {getInitials(attendee.name)}
                         </div>
+                        <div className="flex-1">
+                          <div className="font-semibold text-white text-sm">{attendee.name}</div>
+                        </div>
+                        <button
+                          className={`rounded-full px-3 py-1 text-xs font-medium transition focus:outline-none ${
+                            attendee.attendanceStatus === "attended"
+                              ? "bg-emerald-500/80 text-white hover:bg-emerald-600"
+                              : "bg-slate-600/40 text-slate-200 hover:bg-slate-500"
+                          }`}
+                          onClick={() => handleToggleAttendance(attendee)}
+                        >
+                          {attendee.attendanceStatus === "attended" ? "Attended" : "Mark Attended"}
+                        </button>
                       </div>
                     ))}
                   </div>

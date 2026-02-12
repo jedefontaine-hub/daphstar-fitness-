@@ -11,6 +11,7 @@ import {
   type AdminClassSummary,
   type Attendee,
 } from "@/lib/api";
+import { useToast } from "@/components/ui/Toast";
 
 type PageStatus =
   | { state: "idle" }
@@ -52,6 +53,7 @@ function toDatetimeLocal(iso: string): string {
 }
 
 export default function AdminPage() {
+  const toast = useToast();
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [classes, setClasses] = useState<AdminClassSummary[]>([]);
@@ -524,10 +526,42 @@ export default function AdminPage() {
                   </div>
                 ) : (
                   <ul className="mt-4 divide-y divide-white/5">
-                    {modal.attendees.map((a) => (
-                      <li key={a.id} className="py-3">
-                        <p className="font-medium text-white">{a.customerName}</p>
-                        <p className="text-sm text-slate-400">{a.customerEmail}</p>
+                    {modal.attendees.map((a, idx) => (
+                      <li key={a.id} className="py-3 flex items-center gap-4">
+                        <div className="flex-1">
+                          <p className="font-medium text-white">{a.customerName}</p>
+                          <p className="text-sm text-slate-400">{a.customerEmail}</p>
+                        </div>
+                        <button
+                          className={`rounded-full px-3 py-1 text-xs font-medium transition focus:outline-none ${
+                            a.attendanceStatus === "attended"
+                              ? "bg-emerald-500/80 text-white hover:bg-emerald-600"
+                              : "bg-slate-600/40 text-slate-200 hover:bg-slate-500"
+                          }`}
+                          onClick={async () => {
+                            const newStatus = a.attendanceStatus === "attended" ? "absent" : "attended";
+                            try {
+                              const res = await fetch(`/api/classes/${modal.classItem.id}/attendees`, {
+                                method: "PATCH",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ attendeeId: a.id, attendanceStatus: newStatus }),
+                              });
+                              if (!res.ok) throw new Error("Failed to update attendance");
+                              // Update UI
+                              setModal((prev) => prev.type === "attendees" ? {
+                                ...prev,
+                                attendees: prev.attendees.map((att, i) =>
+                                  i === idx ? { ...att, attendanceStatus: newStatus } : att
+                                ),
+                              } : prev);
+                              toast.success(`Marked as ${newStatus}`);
+                            } catch {
+                              toast.error("Could not update attendance");
+                            }
+                          }}
+                        >
+                          {a.attendanceStatus === "attended" ? "Attended" : "Mark Attended"}
+                        </button>
                       </li>
                     ))}
                   </ul>

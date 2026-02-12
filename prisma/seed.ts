@@ -60,6 +60,8 @@ async function main() {
   ]);
   console.log(`✅ Created ${customers.length} customers`);
 
+  // No dynamic UTC helper, use fixed dates as before
+
   // Seed classes
   const classes = await Promise.all([
     // Past classes (for leaderboard)
