@@ -6,6 +6,8 @@ import { cancelBooking } from "@/lib/api";
 import { ConfirmModal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { BottomNav } from "@/components/BottomNav";
+import { SessionPassTracker } from "@/components/SessionPassTracker";
+import { CompletedPassHistory } from "@/components/CompletedPassHistory";
 
 type DashboardBooking = {
   id: string;
@@ -26,6 +28,35 @@ type DashboardStats = {
   rank: number | null;
 };
 
+type SessionPassHistory = {
+  id: string;
+  sessionNumber: number;
+  classTitle: string;
+  attendedDate: string;
+};
+
+type SessionPassData = {
+  remaining: number;
+  total: number;
+  purchaseDate: string | null;
+  history: SessionPassHistory[];
+};
+
+type CompletedPassSession = {
+  id: string;
+  sessionNumber: number;
+  classTitle: string;
+  attendedDate: string;
+};
+
+type CompletedPass = {
+  id: string;
+  purchaseDate: string;
+  completedDate: string;
+  sessionsCount: number;
+  sessions: CompletedPassSession[];
+};
+
 type CustomerInfo = {
   id: string;
   name: string;
@@ -38,6 +69,8 @@ type DashboardData = {
   upcomingBookings: DashboardBooking[];
   pastBookings: DashboardBooking[];
   stats: DashboardStats;
+  sessionPass: SessionPassData;
+  completedPasses: CompletedPass[];
 };
 
 type LoadStatus =
@@ -187,7 +220,7 @@ export default function DashboardPage() {
     );
   }
 
-  const { customer, upcomingBookings, pastBookings, stats } = status.data;
+  const { customer, upcomingBookings, pastBookings, stats, sessionPass, completedPasses } = status.data;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-teal-900 pb-20">
@@ -299,6 +332,16 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Session Pass Tracker */}
+        <div className="mb-8">
+          <SessionPassTracker
+            remaining={sessionPass.remaining}
+            total={sessionPass.total}
+            purchaseDate={sessionPass.purchaseDate ?? undefined}
+            history={sessionPass.history}
+          />
+        </div>
+
         {/* Favorite class */}
         {stats.favoriteClass && (
           <div className="mb-8 glass-card rounded-2xl p-5">
@@ -405,6 +448,13 @@ export default function DashboardPage() {
             </div>
           )}
         </section>
+
+        {/* Completed Pass History */}
+        {completedPasses && completedPasses.length > 0 && (
+          <section className="mt-8">
+            <CompletedPassHistory passes={completedPasses} />
+          </section>
+        )}
       </main>
 
       <ConfirmModal

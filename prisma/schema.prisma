@@ -58,4 +58,45 @@ model Customer {
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
   bookings              Booking[]
+
+  // Session Pass Management
+  sessionPassRemaining  Int       @default(10)    // Sessions left on current pass
+  sessionPassTotal      Int       @default(10)    // Total sessions in current pass (usually 10)
+  sessionPassPurchaseDate DateTime? @default(now()) // When current pass was purchased
+}
+
+model SessionPassHistory {
+  id              String    @id @default(cuid())
+  customerId      String
+  bookingId       String    @unique
+  sessionNumber   Int       // Which session in the pass (1-10)
+  classTitle      String
+  attendedDate    DateTime
+  createdAt       DateTime  @default(now())
+
+  @@index([customerId])
+}
+
+model CompletedSessionPass {
+  id              String    @id @default(cuid())
+  customerId      String
+  purchaseDate    DateTime
+  completedDate   DateTime
+  sessionsCount   Int       @default(10)
+  sessions        CompletedSession[]
+  createdAt       DateTime  @default(now())
+
+  @@index([customerId])
+}
+
+model CompletedSession {
+  id                    String              @id @default(cuid())
+  completedPassId       String
+  completedPass         CompletedSessionPass @relation(fields: [completedPassId], references: [id], onDelete: Cascade)
+  sessionNumber         Int
+  classTitle            String
+  attendedDate          DateTime
+  createdAt             DateTime            @default(now())
+
+  @@index([completedPassId])
 }

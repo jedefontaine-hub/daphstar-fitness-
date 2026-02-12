@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "@/lib/session-context";
 
 type AuthMode = "login" | "register";
 
@@ -12,16 +13,25 @@ type AuthStatus =
 
 export default function LoginPage() {
   const router = useRouter();
+  const { customer, isLoading } = useSession();
   const [mode, setMode] = useState<AuthMode>("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [retirementVillage, setRetirementVillage] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [status, setStatus] = useState<AuthStatus>({ state: "idle" });
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!isLoading && customer) {
+      router.push("/dashboard");
+    }
+  }, [customer, isLoading, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (mode === "register" && !name.trim()) {
       setStatus({ state: "error", message: "Please enter your name." });
       return;
@@ -36,6 +46,10 @@ export default function LoginPage() {
     }
     if (mode === "register" && password.length < 6) {
       setStatus({ state: "error", message: "Password must be at least 6 characters." });
+      return;
+    }
+    if (mode === "register" && !termsAccepted) {
+      setStatus({ state: "error", message: "Please accept the terms and conditions to continue." });
       return;
     }
 
@@ -72,6 +86,20 @@ export default function LoginPage() {
       setStatus({ state: "error", message: "Unable to connect. Please try again." });
     }
   };
+
+  // Show loading state while checking auth
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-teal-900 flex items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-3 border-teal-500 border-t-transparent" />
+      </div>
+    );
+  }
+
+  // Don't render if logged in (will redirect)
+  if (customer) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-teal-900 px-6 py-10">
@@ -173,6 +201,35 @@ export default function LoginPage() {
                   <option value="Hillcrest Retirement">Hillcrest Retirement</option>
                   <option value="Independent">Independent / Other</option>
                 </select>
+              </label>
+            )}
+
+            {mode === "register" && (
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={termsAccepted}
+                  onChange={(e) => setTermsAccepted(e.target.checked)}
+                  className="mt-1 h-5 w-5 rounded border-white/20 bg-white/10 text-teal-500 focus:ring-teal-500 focus:ring-offset-0"
+                />
+                <span className="text-sm text-slate-300 leading-relaxed">
+                  I agree to the{" "}
+                  <a
+                    href="/terms"
+                    target="_blank"
+                    className="text-teal-400 hover:text-teal-300 underline font-medium"
+                  >
+                    Terms & Conditions
+                  </a>
+                  {" "}and{" "}
+                  <a
+                    href="/privacy"
+                    target="_blank"
+                    className="text-teal-400 hover:text-teal-300 underline font-medium"
+                  >
+                    Privacy Policy
+                  </a>
+                </span>
               </label>
             )}
 

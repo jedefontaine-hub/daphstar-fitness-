@@ -26,7 +26,11 @@ export async function GET() {
       },
       ...dashboard,
     });
-  } catch {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  } catch (error) {
+    console.error("Dashboard error:", error);
+    return NextResponse.json(
+      { error: "server_error", details: error instanceof Error ? error.message : "unknown" },
+      { status: 500 }
+    );
   }
 }

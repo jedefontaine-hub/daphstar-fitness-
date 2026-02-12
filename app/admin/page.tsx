@@ -52,6 +52,14 @@ function toDatetimeLocal(iso: string): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+type CustomerWithPass = {
+  id: string;
+  name: string;
+  email: string;
+  retirementVillage: string | null;
+  sessionPassRemaining?: number;
+};
+
 export default function AdminPage() {
   const toast = useToast();
   const router = useRouter();
@@ -60,6 +68,9 @@ export default function AdminPage() {
   const [status, setStatus] = useState<PageStatus>({ state: "loading" });
   const [modal, setModal] = useState<ModalState>({ type: "none" });
   const [isRecurring, setIsRecurring] = useState(false);
+  const [expiredPasses, setExpiredPasses] = useState<CustomerWithPass[]>([]);
+  const [lowPasses, setLowPasses] = useState<CustomerWithPass[]>([]);
+  const [showExpiredPasses, setShowExpiredPasses] = useState(true);
 
   const locations = [
     "Sunrise Village",
@@ -100,8 +111,41 @@ export default function AdminPage() {
     }
   };
 
+  const loadExpiredPasses = async () => {
+    try {
+      const res = await fetch("/api/admin/session-passes");
+      if (res.ok) {
+        const data = await res.json();
+        setExpiredPasses(data.expired || []);
+        setLowPasses(data.low || []);
+      }
+    } catch {
+      // Silently fail
+    }
+  };
+
+  const handlePurchasePass = async (customerId: string, customerName: string) => {
+    try {
+      const res = await fetch("/api/admin/session-passes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ customerId, sessionCount: 10 }),
+      });
+
+      if (res.ok) {
+        toast.success(`New 10-session pass activated for ${customerName}`);
+        loadExpiredPasses();
+      } else {
+        toast.error("Failed to purchase pass");
+      }
+    } catch {
+      toast.error("Failed to purchase pass");
+    }
+  };
+
   useEffect(() => {
     loadClasses();
+    loadExpiredPasses();
   }, []);
 
   const handleOpenCreate = () => setModal({ type: "create" });
@@ -231,6 +275,101 @@ export default function AdminPage() {
             Sign out
           </button>
         </header>
+
+        {/* Session Pass Alerts */}
+        {(expiredPasses.length > 0 || lowPasses.length > 0) && (
+          <section className="glass-card rounded-3xl p-6 border-2 border-rose-500/30">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-500/20">
+                  <svg className="h-5 w-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-white">Session Pass Alerts</h2>
+                  <p className="text-sm text-slate-400">
+                    {expiredPasses.length} expired · {lowPasses.length} low balance
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowExpiredPasses(!showExpiredPasses)}
+                className="text-sm text-slate-400 hover:text-white transition"
+              >
+                {showExpiredPasses ? "Hide" : "Show"}
+              </button>
+            </div>
+
+            {showExpiredPasses && (
+              <div className="space-y-4">
+                {/* Expired Passes */}
+                {expiredPasses.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-rose-400 mb-2">
+                      Expired Passes ({expiredPasses.length})
+                    </h3>
+                    <div className="space-y-2">
+                      {expiredPasses.map((customer) => (
+                        <div
+                          key={customer.id}
+                          className="flex items-center justify-between rounded-xl border border-rose-500/20 bg-rose-500/10 p-4"
+                        >
+                          <div>
+                            <p className="font-medium text-white">{customer.name}</p>
+                            <p className="text-sm text-slate-400">{customer.email}</p>
+                            {customer.retirementVillage && (
+                              <p className="text-xs text-slate-500 mt-1">{customer.retirementVillage}</p>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => handlePurchasePass(customer.id, customer.name)}
+                            className="rounded-full bg-teal-500 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-600 transition"
+                          >
+                            Activate New Pass
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Low Balance Passes */}
+                {lowPasses.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-amber-400 mb-2">
+                      Low Balance ({lowPasses.length})
+                    </h3>
+                    <div className="space-y-2">
+                      {lowPasses.map((customer) => (
+                        <div
+                          key={customer.id}
+                          className="flex items-center justify-between rounded-xl border border-amber-500/20 bg-amber-500/10 p-4"
+                        >
+                          <div>
+                            <p className="font-medium text-white">{customer.name}</p>
+                            <p className="text-sm text-slate-400">
+                              {customer.email} · {customer.sessionPassRemaining} sessions left
+                            </p>
+                            {customer.retirementVillage && (
+                              <p className="text-xs text-slate-500 mt-1">{customer.retirementVillage}</p>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => handlePurchasePass(customer.id, customer.name)}
+                            className="rounded-full border border-teal-500/30 bg-teal-500/20 px-4 py-2 text-sm font-semibold text-teal-300 hover:bg-teal-500/30 transition"
+                          >
+                            Renew Pass
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
+        )}
 
         <section className="glass-card rounded-3xl p-6">
           <div className="flex items-center justify-between">

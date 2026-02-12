@@ -546,10 +546,26 @@ export type DashboardStats = {
   rank: number | null;
 };
 
+export type SessionPassHistory = {
+  id: string;
+  sessionNumber: number;
+  classTitle: string;
+  attendedDate: string;
+};
+
+export type SessionPassData = {
+  remaining: number;
+  total: number;
+  purchaseDate: string | null;
+  history: SessionPassHistory[];
+};
+
 export type DashboardData = {
   upcomingBookings: DashboardBooking[];
   pastBookings: DashboardBooking[];
   stats: DashboardStats;
+  sessionPass: SessionPassData;
+  completedPasses: CompletedPass[];
 };
 
 export async function getCustomerDashboard(email: string): Promise<DashboardData> {
@@ -643,6 +659,15 @@ export async function getCustomerDashboard(email: string): Promise<DashboardData
     }
   }
 
+  // Get session pass history
+  const sessionPassHistory = await prisma.sessionPassHistory.findMany({
+    where: { customerId: customer?.id ?? "" },
+    orderBy: { sessionNumber: "asc" },
+  });
+
+  // Get completed passes
+  const completedPasses = customer?.id ? await getCompletedPasses(customer.id) : [];
+
   return {
     upcomingBookings: upcoming,
     pastBookings: past.slice(0, 10),
@@ -653,7 +678,239 @@ export async function getCustomerDashboard(email: string): Promise<DashboardData
       favoriteClass,
       rank,
     },
+    sessionPass: {
+      remaining: customer?.sessionPassRemaining ?? 10,
+      total: customer?.sessionPassTotal ?? 10,
+      purchaseDate: customer?.sessionPassPurchaseDate?.toISOString() ?? null,
+      history: sessionPassHistory.map((h) => ({
+        id: h.id,
+        sessionNumber: h.sessionNumber,
+        classTitle: h.classTitle,
+        attendedDate: h.attendedDate.toISOString(),
+      })),
+    },
+    completedPasses,
   };
+}
+
+// ---------- Session Pass Management ----------
+
+export type MarkAttendanceResult =
+  | { ok: true; sessionPassRemaining: number }
+  | { ok: false; error: "booking_not_found" | "customer_not_found" | "no_sessions_remaining" };
+
+export async function markAttendance(
+  bookingId: string,
+  attendanceStatus: "attended" | "absent"
+): Promise<MarkAttendanceResult> {
+  const booking = await prisma.booking.findUnique({
+    where: { id: bookingId },
+    include: { class: true, customer: true },
+  });
+
+  if (!booking) {
+    return { ok: false, error: "booking_not_found" };
+  }
+
+  const customer = booking.customer;
+  if (!customer) {
+    return { ok: false, error: "customer_not_found" };
+  }
+
+  // Update attendance status
+  await prisma.booking.update({
+    where: { id: bookingId },
+    data: { attendanceStatus },
+  });
+
+  // If marking as attended, decrement session pass and record history
+  if (attendanceStatus === "attended") {
+    if (customer.sessionPassRemaining <= 0) {
+      return { ok: false, error: "no_sessions_remaining" };
+    }
+
+    // Calculate which session number this is
+    const usedSessions = customer.sessionPassTotal - customer.sessionPassRemaining;
+    const sessionNumber = usedSessions + 1;
+
+    // Check if history already exists for this booking (prevent double-counting)
+    const existingHistory = await prisma.sessionPassHistory.findUnique({
+      where: { bookingId },
+    });
+
+    if (!existingHistory) {
+      // Decrement session pass
+      const updatedCustomer = await prisma.customer.update({
+        where: { id: customer.id },
+        data: {
+          sessionPassRemaining: {
+            decrement: 1,
+          },
+        },
+      });
+
+      // Record in history
+      await prisma.sessionPassHistory.create({
+        data: {
+          customerId: customer.id,
+          bookingId: bookingId,
+          sessionNumber,
+          classTitle: booking.class.title,
+          attendedDate: booking.class.startTime,
+        },
+      });
+
+      return { ok: true, sessionPassRemaining: updatedCustomer.sessionPassRemaining };
+    }
+
+    return { ok: true, sessionPassRemaining: customer.sessionPassRemaining };
+  }
+
+  // If marking as absent, remove from history if it exists and increment session pass
+  if (attendanceStatus === "absent") {
+    const existingHistory = await prisma.sessionPassHistory.findUnique({
+      where: { bookingId },
+    });
+
+    if (existingHistory) {
+      // Remove from history
+      await prisma.sessionPassHistory.delete({
+        where: { bookingId },
+      });
+
+      // Increment session pass back
+      const updatedCustomer = await prisma.customer.update({
+        where: { id: customer.id },
+        data: {
+          sessionPassRemaining: {
+            increment: 1,
+          },
+        },
+      });
+
+      return { ok: true, sessionPassRemaining: updatedCustomer.sessionPassRemaining };
+    }
+  }
+
+  return { ok: true, sessionPassRemaining: customer.sessionPassRemaining };
+}
+
+export async function purchaseSessionPass(
+  customerId: string,
+  sessionCount: number = 10
+): Promise<{ ok: boolean }> {
+  const customer = await prisma.customer.findUnique({ where: { id: customerId } });
+
+  if (!customer) {
+    return { ok: false };
+  }
+
+  // Archive the old pass if it was completed (all sessions used)
+  const oldPassHistory = await prisma.sessionPassHistory.findMany({
+    where: { customerId },
+    orderBy: { sessionNumber: "asc" },
+  });
+
+  if (oldPassHistory.length > 0 && customer.sessionPassPurchaseDate) {
+    // Create completed pass record
+    const completedPass = await prisma.completedSessionPass.create({
+      data: {
+        customerId,
+        purchaseDate: customer.sessionPassPurchaseDate,
+        completedDate: new Date(),
+        sessionsCount: oldPassHistory.length,
+      },
+    });
+
+    // Archive all session history
+    for (const session of oldPassHistory) {
+      await prisma.completedSession.create({
+        data: {
+          completedPassId: completedPass.id,
+          sessionNumber: session.sessionNumber,
+          classTitle: session.classTitle,
+          attendedDate: session.attendedDate,
+        },
+      });
+    }
+
+    // Clear old session history
+    await prisma.sessionPassHistory.deleteMany({
+      where: { customerId },
+    });
+  }
+
+  // Create new pass
+  await prisma.customer.update({
+    where: { id: customerId },
+    data: {
+      sessionPassRemaining: sessionCount,
+      sessionPassTotal: sessionCount,
+      sessionPassPurchaseDate: new Date(),
+    },
+  });
+
+  return { ok: true };
+}
+
+export async function getCustomersWithExpiredPasses(): Promise<
+  { id: string; name: string; email: string; retirementVillage: string | null }[]
+> {
+  const customers = await prisma.customer.findMany({
+    where: {
+      sessionPassRemaining: 0,
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      retirementVillage: true,
+    },
+  });
+
+  return customers;
+}
+
+// ---------- Completed Pass History ----------
+
+export type CompletedPassSession = {
+  id: string;
+  sessionNumber: number;
+  classTitle: string;
+  attendedDate: string;
+};
+
+export type CompletedPass = {
+  id: string;
+  purchaseDate: string;
+  completedDate: string;
+  sessionsCount: number;
+  sessions: CompletedPassSession[];
+};
+
+export async function getCompletedPasses(customerId: string): Promise<CompletedPass[]> {
+  const completedPasses = await prisma.completedSessionPass.findMany({
+    where: { customerId },
+    include: {
+      sessions: {
+        orderBy: { sessionNumber: "asc" },
+      },
+    },
+    orderBy: { completedDate: "desc" },
+  });
+
+  return completedPasses.map((pass) => ({
+    id: pass.id,
+    purchaseDate: pass.purchaseDate.toISOString(),
+    completedDate: pass.completedDate.toISOString(),
+    sessionsCount: pass.sessionsCount,
+    sessions: pass.sessions.map((s) => ({
+      id: s.id,
+      sessionNumber: s.sessionNumber,
+      classTitle: s.classTitle,
+      attendedDate: s.attendedDate.toISOString(),
+    })),
+  }));
 }
 
 // ---------- Birthday Functions ----------
