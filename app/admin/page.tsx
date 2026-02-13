@@ -848,10 +848,10 @@ export default function AdminPage() {
           </section>
         )}
 
-        {/* Settings Tab */}
+        {/* Villages Tab */}
         {activeTab === "villages" && (
           <section className="glass-card rounded-3xl p-6">
-            <h2 className="text-lg font-semibold text-white mb-6">Settings</h2>
+            <h2 className="text-lg font-semibold text-white mb-6">Villages</h2>
 
             <div className="space-y-6">
               <div>
