@@ -46,6 +46,13 @@ type Customer = {
   _count?: { bookings: number };
 };
 
+type Village = {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 type Tab = "classes" | "customers" | "settings";
 
 function formatDateRange(startTime: string, endTime: string): string {
@@ -109,6 +116,11 @@ export default function AdminPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [customersStatus, setCustomersStatus] = useState<PageStatus>({ state: "idle" });
   const [customerSearch, setCustomerSearch] = useState("");
+
+  // Villages state
+  const [villages, setVillages] = useState<Village[]>([]);
+  const [villagesStatus, setVillagesStatus] = useState<PageStatus>({ state: "idle" });
+  const [newVillageName, setNewVillageName] = useState("");
 
   const [modal, setModal] = useState<ModalState>({ type: "none" });
 
@@ -193,12 +205,75 @@ export default function AdminPage() {
     }
   };
 
+  // Villages functions
+  const loadVillages = async () => {
+    setVillagesStatus({ state: "loading" });
+    try {
+      const res = await fetch("/api/admin/villages");
+      if (!res.ok) throw new Error("Failed to fetch");
+      const data = await res.json();
+      setVillages(data);
+      setVillagesStatus({ state: "idle" });
+    } catch {
+      setVillagesStatus({ state: "error", message: "Unable to load villages." });
+    }
+  };
+
+  const handleAddVillage = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const name = newVillageName.trim();
+    if (!name) return;
+
+    try {
+      const res = await fetch("/api/admin/villages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        if (error.error === "village_exists") {
+          toast.error("Village already exists");
+        } else {
+          toast.error("Failed to add village");
+        }
+        return;
+      }
+
+      toast.success("Village added successfully");
+      setNewVillageName("");
+      loadVillages();
+    } catch {
+      toast.error("Failed to add village");
+    }
+  };
+
+  const handleDeleteVillage = async (id: string, name: string) => {
+    if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
+
+    try {
+      const res = await fetch(`/api/admin/villages/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) throw new Error("Failed to delete");
+
+      toast.success("Village deleted successfully");
+      loadVillages();
+    } catch {
+      toast.error("Failed to delete village");
+    }
+  };
+
   useEffect(() => {
     if (activeTab === "classes") {
       loadClasses();
       loadExpiredPasses();
     } else if (activeTab === "customers") {
       loadCustomers();
+    } else if (activeTab === "settings") {
+      loadVillages();
     }
   }, [activeTab]);
 
@@ -782,19 +857,62 @@ export default function AdminPage() {
               <div>
                 <h3 className="text-sm font-semibold text-white mb-3">Retirement Villages</h3>
                 <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                  <ul className="space-y-2">
-                    {locations.map((location) => (
-                      <li key={location} className="flex items-center gap-3 text-slate-300">
-                        <svg className="h-5 w-5 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        <span>{location}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  {/* Add Village Form */}
+                  <form onSubmit={handleAddVillage} className="mb-4">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Enter village name..."
+                        value={newVillageName}
+                        onChange={(e) => setNewVillageName(e.target.value)}
+                        className="input-dark flex-1 h-10 rounded-xl px-4 text-sm"
+                      />
+                      <button
+                        type="submit"
+                        className="btn-glow rounded-xl px-5 py-2 text-sm font-semibold text-white whitespace-nowrap"
+                      >
+                        + Add Village
+                      </button>
+                    </div>
+                  </form>
+
+                  {/* Villages List */}
+                  {villagesStatus.state === "loading" ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="h-6 w-6 animate-spin rounded-full border-2 border-purple-500 border-t-transparent" />
+                    </div>
+                  ) : villagesStatus.state === "error" ? (
+                    <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
+                      {villagesStatus.message}
+                    </div>
+                  ) : villages.length === 0 ? (
+                    <div className="rounded-xl border border-white/5 bg-white/[0.02] p-6 text-center">
+                      <p className="text-sm text-slate-400">No villages yet. Add one above.</p>
+                    </div>
+                  ) : (
+                    <ul className="space-y-2">
+                      {villages.map((village) => (
+                        <li key={village.id} className="flex items-center justify-between gap-3 rounded-lg border border-white/5 bg-white/[0.02] p-3 group hover:border-purple-500/30 hover:bg-white/[0.04] transition">
+                          <div className="flex items-center gap-3">
+                            <svg className="h-5 w-5 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <span className="text-slate-300 group-hover:text-white transition">{village.name}</span>
+                          </div>
+                          <button
+                            onClick={() => handleDeleteVillage(village.id, village.name)}
+                            className="opacity-0 group-hover:opacity-100 rounded-full border border-rose-500/30 bg-rose-500/10 px-3 py-1 text-xs font-semibold text-rose-300 transition hover:border-rose-500 hover:bg-rose-500/20"
+                          >
+                            Delete
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
                   <p className="mt-4 text-xs text-slate-400">
-                    Locations are currently managed in the codebase constants file.
+                    Villages can be added or removed dynamically. Changes will be reflected in customer and class forms.
                   </p>
                 </div>
               </div>
