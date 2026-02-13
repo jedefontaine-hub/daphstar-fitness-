@@ -855,7 +855,7 @@ export default function AdminPage() {
 
             <div className="space-y-6">
               <div>
-                <h3 className="text-sm font-semibold text-white mb-3">Retirement Villages</h3>
+                <h3 className="text-sm font-semibold text-white mb-3">Villages</h3>
                 <div className="rounded-xl border border-white/10 bg-white/5 p-4">
                   {/* Add Village Form */}
                   <form onSubmit={handleAddVillage} className="mb-4">
