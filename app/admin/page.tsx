@@ -548,7 +548,7 @@ export default function AdminPage() {
                   : "text-slate-400 hover:text-white hover:bg-white/5"
               }`}
             >
-              Settings
+              Villages
             </button>
           </div>
         </div>
