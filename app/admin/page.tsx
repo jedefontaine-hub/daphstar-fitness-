@@ -12,6 +12,7 @@ import {
   type Attendee,
 } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
+import { LOCATIONS } from "@/lib/constants";
 
 type PageStatus =
   | { state: "idle" }
@@ -23,7 +24,29 @@ type ModalState =
   | { type: "create" }
   | { type: "edit"; classItem: AdminClassSummary }
   | { type: "attendees"; classItem: AdminClassSummary; attendees: Attendee[] }
-  | { type: "cancelConfirm"; classItem: AdminClassSummary };
+  | { type: "cancelConfirm"; classItem: AdminClassSummary }
+  | { type: "editCustomer"; customer: Customer }
+  | { type: "createCustomer" }
+  | { type: "deleteCustomerConfirm"; customer: Customer };
+
+type Customer = {
+  id: string;
+  name: string;
+  email: string;
+  retirementVillage: string | null;
+  birthdate: string | null;
+  phone: string | null;
+  address: string | null;
+  emergencyContactName: string | null;
+  emergencyContactPhone: string | null;
+  sessionPassRemaining: number;
+  sessionPassTotal: number;
+  sessionPassPurchaseDate: string | null;
+  createdAt: string;
+  _count?: { bookings: number };
+};
+
+type Tab = "classes" | "customers" | "settings";
 
 function formatDateRange(startTime: string, endTime: string): string {
   const start = new Date(startTime);
@@ -52,6 +75,14 @@ function toDatetimeLocal(iso: string): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+function toDateInput(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.valueOf())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 type CustomerWithPass = {
   id: string;
   name: string;
@@ -64,21 +95,24 @@ export default function AdminPage() {
   const toast = useToast();
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [activeTab, setActiveTab] = useState<Tab>("classes");
+
+  // Classes state
   const [classes, setClasses] = useState<AdminClassSummary[]>([]);
-  const [status, setStatus] = useState<PageStatus>({ state: "loading" });
-  const [modal, setModal] = useState<ModalState>({ type: "none" });
+  const [classesStatus, setClassesStatus] = useState<PageStatus>({ state: "loading" });
   const [isRecurring, setIsRecurring] = useState(false);
   const [expiredPasses, setExpiredPasses] = useState<CustomerWithPass[]>([]);
   const [lowPasses, setLowPasses] = useState<CustomerWithPass[]>([]);
   const [showExpiredPasses, setShowExpiredPasses] = useState(true);
 
-  const locations = [
-    "Sunrise Village",
-    "Oakwood Gardens",
-    "Meadow Creek",
-    "Lakeside Manor",
-    "Hillcrest Retirement",
-  ];
+  // Customers state
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [customersStatus, setCustomersStatus] = useState<PageStatus>({ state: "idle" });
+  const [customerSearch, setCustomerSearch] = useState("");
+
+  const [modal, setModal] = useState<ModalState>({ type: "none" });
+
+  const locations = LOCATIONS;
 
   useEffect(() => {
     fetch("/api/admin/session")
@@ -100,14 +134,15 @@ export default function AdminPage() {
     router.push("/admin/login");
   };
 
+  // Classes functions
   const loadClasses = async () => {
-    setStatus({ state: "loading" });
+    setClassesStatus({ state: "loading" });
     try {
       const data = await fetchAdminClasses();
       setClasses(data);
-      setStatus({ state: "idle" });
+      setClassesStatus({ state: "idle" });
     } catch {
-      setStatus({ state: "error", message: "Unable to load classes." });
+      setClassesStatus({ state: "error", message: "Unable to load classes." });
     }
   };
 
@@ -135,6 +170,7 @@ export default function AdminPage() {
       if (res.ok) {
         toast.success(`New 10-session pass activated for ${customerName}`);
         loadExpiredPasses();
+        if (activeTab === "customers") loadCustomers();
       } else {
         toast.error("Failed to purchase pass");
       }
@@ -143,13 +179,30 @@ export default function AdminPage() {
     }
   };
 
+  // Customers functions
+  const loadCustomers = async () => {
+    setCustomersStatus({ state: "loading" });
+    try {
+      const res = await fetch("/api/admin/customers");
+      if (!res.ok) throw new Error("Failed to fetch");
+      const data = await res.json();
+      setCustomers(data);
+      setCustomersStatus({ state: "idle" });
+    } catch {
+      setCustomersStatus({ state: "error", message: "Unable to load customers." });
+    }
+  };
+
   useEffect(() => {
-    loadClasses();
-    loadExpiredPasses();
-  }, []);
+    if (activeTab === "classes") {
+      loadClasses();
+      loadExpiredPasses();
+    } else if (activeTab === "customers") {
+      loadCustomers();
+    }
+  }, [activeTab]);
 
   const handleOpenCreate = () => setModal({ type: "create" });
-
   const handleOpenEdit = (classItem: AdminClassSummary) =>
     setModal({ type: "edit", classItem });
 
@@ -198,6 +251,7 @@ export default function AdminPage() {
       });
       handleCloseModal();
       loadClasses();
+      toast.success("Class created successfully");
     } catch {
       alert("Failed to create class.");
     }
@@ -223,6 +277,7 @@ export default function AdminPage() {
       });
       handleCloseModal();
       loadClasses();
+      toast.success("Class updated successfully");
     } catch {
       alert("Failed to update class.");
     }
@@ -234,10 +289,121 @@ export default function AdminPage() {
       await adminCancelClass(modal.classItem.id);
       handleCloseModal();
       loadClasses();
+      toast.success("Class cancelled");
     } catch {
       alert("Failed to cancel class.");
     }
   };
+
+  // Customer CRUD operations
+  const handleCreateCustomer = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+
+    try {
+      const res = await fetch("/api/admin/customers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.get("name"),
+          email: formData.get("email"),
+          password: formData.get("password") || "changeme",
+          retirementVillage: formData.get("retirementVillage") || null,
+          birthdate: formData.get("birthdate") || null,
+          phone: formData.get("phone") || null,
+          address: formData.get("address") || null,
+          emergencyContactName: formData.get("emergencyContactName") || null,
+          emergencyContactPhone: formData.get("emergencyContactPhone") || null,
+          sessionPassRemaining: Number(formData.get("sessionPassRemaining")) || 10,
+          sessionPassTotal: Number(formData.get("sessionPassTotal")) || 10,
+        }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        if (error.error === "email_exists") {
+          toast.error("Email already exists");
+        } else {
+          toast.error("Failed to create customer");
+        }
+        return;
+      }
+
+      toast.success("Customer created successfully");
+      handleCloseModal();
+      loadCustomers();
+    } catch {
+      toast.error("Failed to create customer");
+    }
+  };
+
+  const handleUpdateCustomer = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (modal.type !== "editCustomer") return;
+
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+
+    try {
+      const res = await fetch(`/api/admin/customers/${modal.customer.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.get("name"),
+          email: formData.get("email"),
+          retirementVillage: formData.get("retirementVillage") || null,
+          birthdate: formData.get("birthdate") || null,
+          phone: formData.get("phone") || null,
+          address: formData.get("address") || null,
+          emergencyContactName: formData.get("emergencyContactName") || null,
+          emergencyContactPhone: formData.get("emergencyContactPhone") || null,
+          sessionPassRemaining: Number(formData.get("sessionPassRemaining")),
+          sessionPassTotal: Number(formData.get("sessionPassTotal")),
+        }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        if (error.error === "email_exists") {
+          toast.error("Email already exists");
+        } else {
+          toast.error("Failed to update customer");
+        }
+        return;
+      }
+
+      toast.success("Customer updated successfully");
+      handleCloseModal();
+      loadCustomers();
+    } catch {
+      toast.error("Failed to update customer");
+    }
+  };
+
+  const handleDeleteCustomer = async () => {
+    if (modal.type !== "deleteCustomerConfirm") return;
+
+    try {
+      const res = await fetch(`/api/admin/customers/${modal.customer.id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) throw new Error("Failed to delete");
+
+      toast.success("Customer deleted successfully");
+      handleCloseModal();
+      loadCustomers();
+    } catch {
+      toast.error("Failed to delete customer");
+    }
+  };
+
+  const filteredCustomers = customers.filter((c) =>
+    c.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
+    c.email.toLowerCase().includes(customerSearch.toLowerCase()) ||
+    (c.retirementVillage && c.retirementVillage.toLowerCase().includes(customerSearch.toLowerCase()))
+  );
 
   if (isAuthenticated === null) {
     return (
@@ -256,7 +422,7 @@ export default function AdminPage() {
         <div className="absolute bottom-0 left-1/3 h-60 w-60 rounded-full bg-violet-500/10 blur-[80px]" />
       </div>
 
-      <div className="relative mx-auto max-w-5xl space-y-6">
+      <div className="relative mx-auto max-w-6xl space-y-6">
         <header className="glass-card flex items-start justify-between rounded-3xl p-6">
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.3em] text-purple-400">
@@ -264,7 +430,7 @@ export default function AdminPage() {
             </p>
             <h1 className="mt-1 text-2xl font-bold text-white">Admin Dashboard</h1>
             <p className="mt-2 text-sm text-slate-400">
-              Manage classes, capacity, and attendees.
+              Manage classes, customers, and settings.
             </p>
           </div>
           <button
@@ -276,216 +442,385 @@ export default function AdminPage() {
           </button>
         </header>
 
-        {/* Session Pass Alerts */}
-        {(expiredPasses.length > 0 || lowPasses.length > 0) && (
-          <section className="glass-card rounded-3xl p-6 border-2 border-rose-500/30">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-500/20">
-                  <svg className="h-5 w-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
+        {/* Tabs */}
+        <div className="glass-card rounded-3xl p-2">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setActiveTab("classes")}
+              className={`flex-1 rounded-xl px-6 py-3 text-sm font-semibold transition ${
+                activeTab === "classes"
+                  ? "bg-gradient-to-br from-purple-500/20 to-fuchsia-500/20 text-white shadow-lg"
+                  : "text-slate-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              Classes
+            </button>
+            <button
+              onClick={() => setActiveTab("customers")}
+              className={`flex-1 rounded-xl px-6 py-3 text-sm font-semibold transition ${
+                activeTab === "customers"
+                  ? "bg-gradient-to-br from-purple-500/20 to-fuchsia-500/20 text-white shadow-lg"
+                  : "text-slate-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              Customers
+            </button>
+            <button
+              onClick={() => setActiveTab("settings")}
+              className={`flex-1 rounded-xl px-6 py-3 text-sm font-semibold transition ${
+                activeTab === "settings"
+                  ? "bg-gradient-to-br from-purple-500/20 to-fuchsia-500/20 text-white shadow-lg"
+                  : "text-slate-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              Settings
+            </button>
+          </div>
+        </div>
+
+        {/* Classes Tab */}
+        {activeTab === "classes" && (
+          <>
+            {/* Session Pass Alerts */}
+            {(expiredPasses.length > 0 || lowPasses.length > 0) && (
+              <section className="glass-card rounded-3xl p-6 border-2 border-rose-500/30">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-500/20">
+                      <svg className="h-5 w-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-semibold text-white">Session Pass Alerts</h2>
+                      <p className="text-sm text-slate-400">
+                        {expiredPasses.length} expired · {lowPasses.length} low balance
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowExpiredPasses(!showExpiredPasses)}
+                    className="text-sm text-slate-400 hover:text-white transition"
+                  >
+                    {showExpiredPasses ? "Hide" : "Show"}
+                  </button>
                 </div>
-                <div>
-                  <h2 className="text-lg font-semibold text-white">Session Pass Alerts</h2>
-                  <p className="text-sm text-slate-400">
-                    {expiredPasses.length} expired · {lowPasses.length} low balance
-                  </p>
-                </div>
+
+                {showExpiredPasses && (
+                  <div className="space-y-4">
+                    {/* Expired Passes */}
+                    {expiredPasses.length > 0 && (
+                      <div>
+                        <h3 className="text-sm font-semibold text-rose-400 mb-2">
+                          Expired Passes ({expiredPasses.length})
+                        </h3>
+                        <div className="space-y-2">
+                          {expiredPasses.map((customer) => (
+                            <div
+                              key={customer.id}
+                              className="flex items-center justify-between rounded-xl border border-rose-500/20 bg-rose-500/10 p-4"
+                            >
+                              <div>
+                                <p className="font-medium text-white">{customer.name}</p>
+                                <p className="text-sm text-slate-400">{customer.email}</p>
+                                {customer.retirementVillage && (
+                                  <p className="text-xs text-slate-500 mt-1">{customer.retirementVillage}</p>
+                                )}
+                              </div>
+                              <button
+                                onClick={() => handlePurchasePass(customer.id, customer.name)}
+                                className="rounded-full bg-teal-500 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-600 transition"
+                              >
+                                Activate New Pass
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Low Balance Passes */}
+                    {lowPasses.length > 0 && (
+                      <div>
+                        <h3 className="text-sm font-semibold text-amber-400 mb-2">
+                          Low Balance ({lowPasses.length})
+                        </h3>
+                        <div className="space-y-2">
+                          {lowPasses.map((customer) => (
+                            <div
+                              key={customer.id}
+                              className="flex items-center justify-between rounded-xl border border-amber-500/20 bg-amber-500/10 p-4"
+                            >
+                              <div>
+                                <p className="font-medium text-white">{customer.name}</p>
+                                <p className="text-sm text-slate-400">
+                                  {customer.email} · {customer.sessionPassRemaining} sessions left
+                                </p>
+                                {customer.retirementVillage && (
+                                  <p className="text-xs text-slate-500 mt-1">{customer.retirementVillage}</p>
+                                )}
+                              </div>
+                              <button
+                                onClick={() => handlePurchasePass(customer.id, customer.name)}
+                                className="rounded-full border border-teal-500/30 bg-teal-500/20 px-4 py-2 text-sm font-semibold text-teal-300 hover:bg-teal-500/30 transition"
+                              >
+                                Renew Pass
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </section>
+            )}
+
+            <section className="glass-card rounded-3xl p-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-white">Classes</h2>
+                <button
+                  className="btn-glow rounded-full px-5 py-2.5 text-sm font-semibold text-white"
+                  type="button"
+                  onClick={handleOpenCreate}
+                >
+                  + Create Class
+                </button>
               </div>
+
+              {classesStatus.state === "loading" ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-purple-500 border-t-transparent" />
+                </div>
+              ) : null}
+              {classesStatus.state === "error" ? (
+                <div className="mt-4 rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
+                  {classesStatus.message}
+                </div>
+              ) : null}
+
+              <div className="mt-6 grid gap-4">
+                {classes.map((item) => {
+                  const isCancelled = item.status === "cancelled";
+                  const fillPercent = Math.round((item.booked / item.capacity) * 100);
+                  return (
+                    <div
+                      key={item.id}
+                      className={`group flex flex-col gap-4 rounded-2xl border p-5 transition sm:flex-row sm:items-center sm:justify-between ${
+                        isCancelled
+                          ? "border-white/5 bg-white/[0.01] opacity-50"
+                          : "border-white/5 bg-white/[0.02] hover:border-purple-500/30 hover:bg-white/[0.04]"
+                      }`}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${
+                          isCancelled
+                            ? "bg-slate-500/20"
+                            : "bg-gradient-to-br from-purple-500/20 to-fuchsia-500/20"
+                        }`}>
+                          <svg className={`h-6 w-6 ${isCancelled ? 'text-slate-400' : 'text-purple-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-white group-hover:text-purple-300 transition">
+                            {item.title}
+                            {isCancelled ? (
+                              <span className="ml-2 rounded bg-rose-500/20 px-2 py-0.5 text-xs font-normal text-rose-400">
+                                Cancelled
+                              </span>
+                            ) : null}
+                          </h3>
+                          <p className="text-sm text-slate-400" suppressHydrationWarning>
+                            {formatDateRange(item.startTime, item.endTime)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <div className="text-right">
+                          <p className="text-sm font-medium text-white">
+                            {item.booked}/{item.capacity}
+                          </p>
+                          <div className="mt-1 h-1.5 w-20 overflow-hidden rounded-full bg-white/10">
+                            <div
+                              className={`h-full rounded-full ${
+                                fillPercent >= 100
+                                  ? "bg-rose-500"
+                                  : fillPercent >= 80
+                                    ? "bg-amber-500"
+                                    : "bg-emerald-500"
+                              }`}
+                              style={{ width: `${Math.min(fillPercent, 100)}%` }}
+                            />
+                          </div>
+                        </div>
+                        <button
+                          className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-slate-300 transition hover:border-purple-500/50 hover:text-white"
+                          type="button"
+                          onClick={() => handleOpenAttendees(item)}
+                        >
+                          Attendees
+                        </button>
+                        {!isCancelled ? (
+                          <>
+                            <button
+                              className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-slate-300 transition hover:border-purple-500/50 hover:text-white"
+                              type="button"
+                              onClick={() => handleOpenEdit(item)}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              className="rounded-full border border-rose-500/30 bg-rose-500/10 px-4 py-2 text-xs font-semibold text-rose-300 transition hover:border-rose-500 hover:bg-rose-500/20"
+                              type="button"
+                              onClick={() => handleOpenCancelConfirm(item)}
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          </>
+        )}
+
+        {/* Customers Tab */}
+        {activeTab === "customers" && (
+          <section className="glass-card rounded-3xl p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-semibold text-white">
+                Customers ({customers.length})
+              </h2>
               <button
-                onClick={() => setShowExpiredPasses(!showExpiredPasses)}
-                className="text-sm text-slate-400 hover:text-white transition"
+                className="btn-glow rounded-full px-5 py-2.5 text-sm font-semibold text-white"
+                type="button"
+                onClick={() => setModal({ type: "createCustomer" })}
               >
-                {showExpiredPasses ? "Hide" : "Show"}
+                + Add Customer
               </button>
             </div>
 
-            {showExpiredPasses && (
-              <div className="space-y-4">
-                {/* Expired Passes */}
-                {expiredPasses.length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-rose-400 mb-2">
-                      Expired Passes ({expiredPasses.length})
-                    </h3>
-                    <div className="space-y-2">
-                      {expiredPasses.map((customer) => (
-                        <div
-                          key={customer.id}
-                          className="flex items-center justify-between rounded-xl border border-rose-500/20 bg-rose-500/10 p-4"
-                        >
-                          <div>
-                            <p className="font-medium text-white">{customer.name}</p>
-                            <p className="text-sm text-slate-400">{customer.email}</p>
-                            {customer.retirementVillage && (
-                              <p className="text-xs text-slate-500 mt-1">{customer.retirementVillage}</p>
-                            )}
-                          </div>
-                          <button
-                            onClick={() => handlePurchasePass(customer.id, customer.name)}
-                            className="rounded-full bg-teal-500 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-600 transition"
-                          >
-                            Activate New Pass
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+            <div className="mb-6">
+              <input
+                type="text"
+                placeholder="Search customers by name, email, or village..."
+                value={customerSearch}
+                onChange={(e) => setCustomerSearch(e.target.value)}
+                className="input-dark w-full h-12 rounded-xl px-4 text-sm"
+              />
+            </div>
 
-                {/* Low Balance Passes */}
-                {lowPasses.length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-amber-400 mb-2">
-                      Low Balance ({lowPasses.length})
-                    </h3>
-                    <div className="space-y-2">
-                      {lowPasses.map((customer) => (
-                        <div
-                          key={customer.id}
-                          className="flex items-center justify-between rounded-xl border border-amber-500/20 bg-amber-500/10 p-4"
-                        >
-                          <div>
-                            <p className="font-medium text-white">{customer.name}</p>
-                            <p className="text-sm text-slate-400">
-                              {customer.email} · {customer.sessionPassRemaining} sessions left
-                            </p>
-                            {customer.retirementVillage && (
-                              <p className="text-xs text-slate-500 mt-1">{customer.retirementVillage}</p>
-                            )}
-                          </div>
-                          <button
-                            onClick={() => handlePurchasePass(customer.id, customer.name)}
-                            className="rounded-full border border-teal-500/30 bg-teal-500/20 px-4 py-2 text-sm font-semibold text-teal-300 hover:bg-teal-500/30 transition"
-                          >
-                            Renew Pass
-                          </button>
-                        </div>
-                      ))}
+            {customersStatus.state === "loading" ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-purple-500 border-t-transparent" />
+              </div>
+            ) : customersStatus.state === "error" ? (
+              <div className="mt-4 rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
+                {customersStatus.message}
+              </div>
+            ) : filteredCustomers.length === 0 ? (
+              <div className="rounded-xl border border-white/5 bg-white/[0.02] p-12 text-center">
+                <p className="text-slate-400">
+                  {customerSearch ? "No customers found" : "No customers yet"}
+                </p>
+              </div>
+            ) : (
+              <div className="grid gap-4">
+                {filteredCustomers.map((customer) => (
+                  <div
+                    key={customer.id}
+                    className="group flex flex-col gap-4 rounded-2xl border border-white/5 bg-white/[0.02] p-5 transition hover:border-purple-500/30 hover:bg-white/[0.04] sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-white group-hover:text-purple-300 transition">
+                        {customer.name}
+                      </h3>
+                      <p className="text-sm text-slate-400">{customer.email}</p>
+                      {customer.retirementVillage && (
+                        <p className="text-xs text-slate-500 mt-1">{customer.retirementVillage}</p>
+                      )}
+                      <div className="mt-2 flex items-center gap-4 text-xs text-slate-500">
+                        <span>{customer.sessionPassRemaining}/{customer.sessionPassTotal} sessions</span>
+                        {customer._count && (
+                          <span>· {customer._count.bookings} bookings</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <button
+                        className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-slate-300 transition hover:border-purple-500/50 hover:text-white"
+                        type="button"
+                        onClick={() => setModal({ type: "editCustomer", customer })}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        className="rounded-full border border-rose-500/30 bg-rose-500/10 px-4 py-2 text-xs font-semibold text-rose-300 transition hover:border-rose-500 hover:bg-rose-500/20"
+                        type="button"
+                        onClick={() => setModal({ type: "deleteCustomerConfirm", customer })}
+                      >
+                        Delete
+                      </button>
                     </div>
                   </div>
-                )}
+                ))}
               </div>
             )}
           </section>
         )}
 
-        <section className="glass-card rounded-3xl p-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-white">Classes</h2>
-            <button
-              className="btn-glow rounded-full px-5 py-2.5 text-sm font-semibold text-white"
-              type="button"
-              onClick={handleOpenCreate}
-            >
-              + Create Class
-            </button>
-          </div>
+        {/* Settings Tab */}
+        {activeTab === "settings" && (
+          <section className="glass-card rounded-3xl p-6">
+            <h2 className="text-lg font-semibold text-white mb-6">Settings</h2>
 
-          {status.state === "loading" ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-purple-500 border-t-transparent" />
-            </div>
-          ) : null}
-          {status.state === "error" ? (
-            <div className="mt-4 rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
-              {status.message}
-            </div>
-          ) : null}
-
-          <div className="mt-6 grid gap-4">
-            {classes.map((item) => {
-              const isCancelled = item.status === "cancelled";
-              const fillPercent = Math.round((item.booked / item.capacity) * 100);
-              return (
-                <div
-                  key={item.id}
-                  className={`group flex flex-col gap-4 rounded-2xl border p-5 transition sm:flex-row sm:items-center sm:justify-between ${
-                    isCancelled
-                      ? "border-white/5 bg-white/[0.01] opacity-50"
-                      : "border-white/5 bg-white/[0.02] hover:border-purple-500/30 hover:bg-white/[0.04]"
-                  }`}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${
-                      isCancelled 
-                        ? "bg-slate-500/20" 
-                        : "bg-gradient-to-br from-purple-500/20 to-fuchsia-500/20"
-                    }`}>
-                      <svg className={`h-6 w-6 ${isCancelled ? 'text-slate-400' : 'text-purple-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-white group-hover:text-purple-300 transition">
-                        {item.title}
-                        {isCancelled ? (
-                          <span className="ml-2 rounded bg-rose-500/20 px-2 py-0.5 text-xs font-normal text-rose-400">
-                            Cancelled
-                          </span>
-                        ) : null}
-                      </h3>
-                      <p className="text-sm text-slate-400" suppressHydrationWarning>
-                        {formatDateRange(item.startTime, item.endTime)}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <div className="text-right">
-                      <p className="text-sm font-medium text-white">
-                        {item.booked}/{item.capacity}
-                      </p>
-                      <div className="mt-1 h-1.5 w-20 overflow-hidden rounded-full bg-white/10">
-                        <div 
-                          className={`h-full rounded-full ${
-                            fillPercent >= 100 
-                              ? "bg-rose-500" 
-                              : fillPercent >= 80 
-                                ? "bg-amber-500" 
-                                : "bg-emerald-500"
-                          }`}
-                          style={{ width: `${Math.min(fillPercent, 100)}%` }}
-                        />
-                      </div>
-                    </div>
-                    <button
-                      className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-slate-300 transition hover:border-purple-500/50 hover:text-white"
-                      type="button"
-                      onClick={() => handleOpenAttendees(item)}
-                    >
-                      Attendees
-                    </button>
-                    {!isCancelled ? (
-                      <>
-                        <button
-                          className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-slate-300 transition hover:border-purple-500/50 hover:text-white"
-                          type="button"
-                          onClick={() => handleOpenEdit(item)}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          className="rounded-full border border-rose-500/30 bg-rose-500/10 px-4 py-2 text-xs font-semibold text-rose-300 transition hover:border-rose-500 hover:bg-rose-500/20"
-                          type="button"
-                          onClick={() => handleOpenCancelConfirm(item)}
-                        >
-                          Cancel
-                        </button>
-                      </>
-                    ) : null}
-                  </div>
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-sm font-semibold text-white mb-3">Retirement Villages</h3>
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <ul className="space-y-2">
+                    {locations.map((location) => (
+                      <li key={location} className="flex items-center gap-3 text-slate-300">
+                        <svg className="h-5 w-5 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span>{location}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-4 text-xs text-slate-400">
+                    Locations are currently managed in the codebase constants file.
+                  </p>
                 </div>
-              );
-            })}
-          </div>
-        </section>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-white mb-3">Admin Access</h3>
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <p className="text-sm text-slate-300 mb-2">
+                    Current password: <code className="rounded bg-white/5 px-2 py-1 font-mono text-xs">admin123</code>
+                  </p>
+                  <p className="text-xs text-slate-400">
+                    To change the admin password, update the ADMIN_PASSWORD environment variable in Vercel.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
       </div>
 
+      {/* Modals - continued in next part... */}
       {/* Modal overlay */}
       {modal.type !== "none" ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="glass-card w-full max-w-md rounded-3xl p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="glass-card w-full max-w-md rounded-3xl p-6 shadow-2xl my-8">
+            {/* Create Class Modal */}
             {modal.type === "create" ? (
               <>
                 <h2 className="text-lg font-semibold text-white">Create Class</h2>
@@ -591,6 +926,7 @@ export default function AdminPage() {
               </>
             ) : null}
 
+            {/* Edit Class Modal */}
             {modal.type === "edit" ? (
               <>
                 <h2 className="text-lg font-semibold text-white">Edit Class</h2>
@@ -654,6 +990,7 @@ export default function AdminPage() {
               </>
             ) : null}
 
+            {/* Attendees Modal */}
             {modal.type === "attendees" ? (
               <>
                 <h2 className="text-lg font-semibold text-white">
@@ -686,7 +1023,6 @@ export default function AdminPage() {
                                 body: JSON.stringify({ attendeeId: a.id, attendanceStatus: newStatus }),
                               });
                               if (!res.ok) throw new Error("Failed to update attendance");
-                              // Update UI
                               setModal((prev) => prev.type === "attendees" ? {
                                 ...prev,
                                 attendees: prev.attendees.map((att, i) =>
@@ -717,6 +1053,7 @@ export default function AdminPage() {
               </>
             ) : null}
 
+            {/* Cancel Class Confirm Modal */}
             {modal.type === "cancelConfirm" ? (
               <>
                 <div className="flex items-center gap-3">
@@ -747,6 +1084,159 @@ export default function AdminPage() {
                     onClick={handleCancelClass}
                   >
                     Cancel class
+                  </button>
+                </div>
+              </>
+            ) : null}
+
+            {/* Create Customer Modal */}
+            {modal.type === "createCustomer" ? (
+              <>
+                <h2 className="text-lg font-semibold text-white mb-4">Add Customer</h2>
+                <form className="grid gap-4 max-h-[70vh] overflow-y-auto pr-2" onSubmit={handleCreateCustomer}>
+                  <label className="grid gap-2 text-sm font-medium text-slate-300">
+                    Name *
+                    <input name="name" className="input-dark h-10 rounded-xl px-4 text-sm" required />
+                  </label>
+                  <label className="grid gap-2 text-sm font-medium text-slate-300">
+                    Email *
+                    <input name="email" type="email" className="input-dark h-10 rounded-xl px-4 text-sm" required />
+                  </label>
+                  <label className="grid gap-2 text-sm font-medium text-slate-300">
+                    Password (default: changeme)
+                    <input name="password" type="password" className="input-dark h-10 rounded-xl px-4 text-sm" placeholder="changeme" />
+                  </label>
+                  <label className="grid gap-2 text-sm font-medium text-slate-300">
+                    Retirement Village
+                    <select name="retirementVillage" className="input-dark h-10 rounded-xl px-4 text-sm">
+                      <option value="">Select village...</option>
+                      {locations.map((loc) => <option key={loc} value={loc}>{loc}</option>)}
+                    </select>
+                  </label>
+                  <label className="grid gap-2 text-sm font-medium text-slate-300">
+                    Birthdate
+                    <input name="birthdate" type="date" className="input-dark h-10 rounded-xl px-4 text-sm" />
+                  </label>
+                  <label className="grid gap-2 text-sm font-medium text-slate-300">
+                    Phone
+                    <input name="phone" type="tel" className="input-dark h-10 rounded-xl px-4 text-sm" />
+                  </label>
+                  <label className="grid gap-2 text-sm font-medium text-slate-300">
+                    Address
+                    <input name="address" className="input-dark h-10 rounded-xl px-4 text-sm" />
+                  </label>
+                  <label className="grid gap-2 text-sm font-medium text-slate-300">
+                    Emergency Contact Name
+                    <input name="emergencyContactName" className="input-dark h-10 rounded-xl px-4 text-sm" />
+                  </label>
+                  <label className="grid gap-2 text-sm font-medium text-slate-300">
+                    Emergency Contact Phone
+                    <input name="emergencyContactPhone" type="tel" className="input-dark h-10 rounded-xl px-4 text-sm" />
+                  </label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <label className="grid gap-2 text-sm font-medium text-slate-300">
+                      Sessions Remaining
+                      <input name="sessionPassRemaining" type="number" min="0" defaultValue="10" className="input-dark h-10 rounded-xl px-4 text-sm" />
+                    </label>
+                    <label className="grid gap-2 text-sm font-medium text-slate-300">
+                      Total Sessions
+                      <input name="sessionPassTotal" type="number" min="1" defaultValue="10" className="input-dark h-10 rounded-xl px-4 text-sm" />
+                    </label>
+                  </div>
+                  <div className="mt-4 flex justify-end gap-3">
+                    <button type="button" className="rounded-full border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-semibold text-slate-300 transition hover:bg-white/10" onClick={handleCloseModal}>
+                      Cancel
+                    </button>
+                    <button type="submit" className="btn-glow rounded-full px-5 py-2.5 text-sm font-semibold text-white">
+                      Create
+                    </button>
+                  </div>
+                </form>
+              </>
+            ) : null}
+
+            {/* Edit Customer Modal */}
+            {modal.type === "editCustomer" ? (
+              <>
+                <h2 className="text-lg font-semibold text-white mb-4">Edit Customer</h2>
+                <form className="grid gap-4 max-h-[70vh] overflow-y-auto pr-2" onSubmit={handleUpdateCustomer}>
+                  <label className="grid gap-2 text-sm font-medium text-slate-300">
+                    Name *
+                    <input name="name" defaultValue={modal.customer.name} className="input-dark h-10 rounded-xl px-4 text-sm" required />
+                  </label>
+                  <label className="grid gap-2 text-sm font-medium text-slate-300">
+                    Email *
+                    <input name="email" type="email" defaultValue={modal.customer.email} className="input-dark h-10 rounded-xl px-4 text-sm" required />
+                  </label>
+                  <label className="grid gap-2 text-sm font-medium text-slate-300">
+                    Retirement Village
+                    <select name="retirementVillage" defaultValue={modal.customer.retirementVillage || ""} className="input-dark h-10 rounded-xl px-4 text-sm">
+                      <option value="">Select village...</option>
+                      {locations.map((loc) => <option key={loc} value={loc}>{loc}</option>)}
+                    </select>
+                  </label>
+                  <label className="grid gap-2 text-sm font-medium text-slate-300">
+                    Birthdate
+                    <input name="birthdate" type="date" defaultValue={toDateInput(modal.customer.birthdate)} className="input-dark h-10 rounded-xl px-4 text-sm" />
+                  </label>
+                  <label className="grid gap-2 text-sm font-medium text-slate-300">
+                    Phone
+                    <input name="phone" type="tel" defaultValue={modal.customer.phone || ""} className="input-dark h-10 rounded-xl px-4 text-sm" />
+                  </label>
+                  <label className="grid gap-2 text-sm font-medium text-slate-300">
+                    Address
+                    <input name="address" defaultValue={modal.customer.address || ""} className="input-dark h-10 rounded-xl px-4 text-sm" />
+                  </label>
+                  <label className="grid gap-2 text-sm font-medium text-slate-300">
+                    Emergency Contact Name
+                    <input name="emergencyContactName" defaultValue={modal.customer.emergencyContactName || ""} className="input-dark h-10 rounded-xl px-4 text-sm" />
+                  </label>
+                  <label className="grid gap-2 text-sm font-medium text-slate-300">
+                    Emergency Contact Phone
+                    <input name="emergencyContactPhone" type="tel" defaultValue={modal.customer.emergencyContactPhone || ""} className="input-dark h-10 rounded-xl px-4 text-sm" />
+                  </label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <label className="grid gap-2 text-sm font-medium text-slate-300">
+                      Sessions Remaining
+                      <input name="sessionPassRemaining" type="number" min="0" defaultValue={modal.customer.sessionPassRemaining} className="input-dark h-10 rounded-xl px-4 text-sm" />
+                    </label>
+                    <label className="grid gap-2 text-sm font-medium text-slate-300">
+                      Total Sessions
+                      <input name="sessionPassTotal" type="number" min="1" defaultValue={modal.customer.sessionPassTotal} className="input-dark h-10 rounded-xl px-4 text-sm" />
+                    </label>
+                  </div>
+                  <div className="mt-4 flex justify-end gap-3">
+                    <button type="button" className="rounded-full border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-semibold text-slate-300 transition hover:bg-white/10" onClick={handleCloseModal}>
+                      Cancel
+                    </button>
+                    <button type="submit" className="btn-glow rounded-full px-5 py-2.5 text-sm font-semibold text-white">
+                      Save
+                    </button>
+                  </div>
+                </form>
+              </>
+            ) : null}
+
+            {/* Delete Customer Confirm Modal */}
+            {modal.type === "deleteCustomerConfirm" ? (
+              <>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-500/20">
+                    <svg className="h-5 w-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                  <h2 className="text-lg font-semibold text-rose-400">Delete Customer?</h2>
+                </div>
+                <p className="mt-4 text-sm text-slate-400">
+                  This will permanently delete <strong className="text-white">{modal.customer.name}</strong> and all their bookings. This action cannot be undone.
+                </p>
+                <div className="mt-6 flex justify-end gap-3">
+                  <button type="button" className="rounded-full border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-semibold text-slate-300 transition hover:bg-white/10" onClick={handleCloseModal}>
+                    Cancel
+                  </button>
+                  <button type="button" className="rounded-full bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-rose-500/30 transition hover:bg-rose-600" onClick={handleDeleteCustomer}>
+                    Delete Customer
                   </button>
                 </div>
               </>
