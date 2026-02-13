@@ -99,10 +99,10 @@ export function SessionPassTracker({
         </div>
       )}
 
-      {/* Visual Session Tracker - Compact Single Row */}
-      <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
+      {/* Visual Session Tracker - Responsive Grid */}
+      <div className="grid grid-cols-5 gap-2 sm:flex sm:gap-2">
         {sessions.map((session) => (
-          <div key={session.number} className="relative group flex-shrink-0">
+          <div key={session.number} className="relative group">
             <div
               className={`w-14 h-14 rounded-lg flex items-center justify-center border-2 transition ${
                 session.attended

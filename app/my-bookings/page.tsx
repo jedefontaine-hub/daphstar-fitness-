@@ -142,23 +142,23 @@ export default function MyBookingsPage() {
       </div>
 
       <header className="relative border-b border-white/10 bg-slate-900/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-5">
+        <div className="mx-auto flex max-w-4xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-5">
           <div>
-            <a href="/" className="text-sm font-semibold uppercase tracking-[0.2em] text-teal-400 hover:text-teal-300 transition">
+            <a href="/" className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-400 hover:text-teal-300 transition sm:text-sm">
               Daphstar Fitness
             </a>
-            <h1 className="mt-1 text-2xl font-bold text-white">My Bookings</h1>
+            <h1 className="mt-1 text-xl font-bold text-white sm:text-2xl">My Bookings</h1>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <a
               href="/calendar"
-              className="rounded-full border border-white/20 bg-white/10 px-6 py-3 text-base font-medium text-slate-200 transition hover:bg-white/20"
+              className="flex-1 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-slate-200 transition hover:bg-white/20 sm:flex-none sm:px-6 sm:py-3 sm:text-base text-center"
             >
               Calendar
             </a>
             <a
               href="/"
-              className="rounded-full border border-white/20 bg-white/10 px-6 py-3 text-base font-medium text-slate-200 transition hover:bg-white/20"
+              className="flex-1 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-slate-200 transition hover:bg-white/20 sm:flex-none sm:px-6 sm:py-3 sm:text-base text-center"
             >
               Schedule
             </a>

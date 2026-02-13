@@ -92,66 +92,28 @@ export function BottomNav() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-lg border-t border-white/10 px-6 py-2 z-50">
-      <div className="max-w-md mx-auto flex items-center justify-between">
-        {/* Profile (far left) */}
-        <div className="flex-1 flex justify-start">
-          <Link
-            key={navItems[0].href}
-            href={navItems[0].href}
-            className={`flex flex-col items-center gap-1 py-2 transition ${
-              (pathname === navItems[0].href || (navItems[0].href === "/profile" && pathname === "/login")) ? "text-teal-400" : "text-white/60 hover:text-white"
-            }`}
-          >
-            {navItems[0].icon(pathname === navItems[0].href || (navItems[0].href === "/profile" && pathname === "/login"))}
-            <span className={`text-xs ${(pathname === navItems[0].href || (navItems[0].href === "/profile" && pathname === "/login")) ? "font-medium" : ""}`}>{navItems[0].label}</span>
-          </Link>
-        </div>
-        {/* Center navs */}
-        <div className="flex-1 flex justify-center gap-6">
-          {navItems.slice(1, -1).map((item) => {
-            const isActive = pathname === item.href;
+    <nav className="fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-lg border-t border-white/10 py-2 z-50">
+      <div className="max-w-md mx-auto px-2 sm:px-6">
+        {/* Mobile: grid layout with equal columns, Desktop: flex with justify-between */}
+        <div className="grid grid-cols-6 gap-1 sm:flex sm:items-center sm:justify-between sm:gap-6">
+          {navItems.map((item) => {
+            const isActive = pathname === item.href || (item.href === "/profile" && pathname === "/login");
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex flex-col items-center gap-1 py-2 transition ${
+                className={`flex flex-col items-center gap-0.5 py-2 transition ${
                   isActive ? "text-teal-400" : "text-white/60 hover:text-white"
                 }`}
               >
-                {item.icon(isActive)}
-                <span className={`text-xs ${isActive ? "font-medium" : ""}`}>{item.label}</span>
+                <div className="h-5 w-5 sm:h-6 sm:w-6">
+                  {item.icon(isActive)}
+                </div>
+                <span className={`text-[10px] sm:text-xs ${isActive ? "font-medium" : ""}`}>{item.label}</span>
               </Link>
             );
           })}
         </div>
-        {/* Admin (far right) */}
-        <div className="flex-1 flex justify-end">
-          <Link
-            key={navItems[navItems.length-1].href}
-            href={navItems[navItems.length-1].href}
-            className={`flex flex-col items-center gap-1 py-2 transition ${
-              pathname === navItems[navItems.length-1].href ? "text-teal-400" : "text-white/60 hover:text-white"
-            }`}
-          >
-            {navItems[navItems.length-1].icon(pathname === navItems[navItems.length-1].href)}
-            <span className={`text-xs ${pathname === navItems[navItems.length-1].href ? "font-medium" : ""}`}>{navItems[navItems.length-1].label}</span>
-          </Link>
-        </div>
-        {/* Logout button, only show if logged in */}
-        {customer && (
-          <button
-            onClick={handleLogout}
-            className="flex flex-col items-center gap-1 py-2 transition text-white/60 hover:text-red-400 focus:outline-none ml-4"
-            style={{ background: "none", border: "none" }}
-            aria-label="Sign Out"
-          >
-            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h4a2 2 0 012 2v1" />
-            </svg>
-            <span className="text-xs">Sign Out</span>
-          </button>
-        )}
       </div>
     </nav>
   );
