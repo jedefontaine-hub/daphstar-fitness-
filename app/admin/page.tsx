@@ -937,7 +937,7 @@ export default function AdminPage() {
       {/* Modal overlay */}
       {modal.type !== "none" ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="glass-card w-full max-w-md rounded-3xl p-6 shadow-2xl my-8">
+          <div className="glass-card w-full max-w-2xl rounded-3xl p-6 shadow-2xl my-8">
             {/* Create Class Modal */}
             {modal.type === "create" ? (
               <>
