@@ -8,6 +8,7 @@ import { NoClassesFound, ErrorState } from "@/components/ui/EmptyState";
 import { formatTime, formatDuration, formatDateHeader, getDateKey } from "@/lib/utils/date";
 import { getVillageColor, getInitials, LOCATIONS } from "@/lib/constants";
 import { BottomNav } from "@/components/BottomNav";
+import { Footer } from "@/components/Footer";
 import Link from "next/link";
 
 type ScheduleStatus =
@@ -325,6 +326,7 @@ export default function Home() {
         </section>
       </main>
 
+      <Footer />
       <BottomNav />
     </div>
   );
