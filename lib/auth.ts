@@ -1,7 +1,8 @@
 import { cookies } from "next/headers";
 
 const SESSION_COOKIE = "daphstar_admin_session";
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? "admin123";
+// Hardcoded to ensure it works reliably in production
+const ADMIN_PASSWORD = "admin123";
 
 type Session = {
   id: string;
