@@ -53,7 +53,7 @@ type Village = {
   updatedAt: string;
 };
 
-type Tab = "classes" | "customers" | "settings";
+type Tab = "classes" | "customers" | "villages";
 
 function formatDateRange(startTime: string, endTime: string): string {
   const start = new Date(startTime);
@@ -272,7 +272,7 @@ export default function AdminPage() {
       loadExpiredPasses();
     } else if (activeTab === "customers") {
       loadCustomers();
-    } else if (activeTab === "settings") {
+    } else if (activeTab === "villages") {
       loadVillages();
     }
   }, [activeTab]);
@@ -505,7 +505,7 @@ export default function AdminPage() {
             </p>
             <h1 className="mt-1 text-2xl font-bold text-white">Admin Dashboard</h1>
             <p className="mt-2 text-sm text-slate-400">
-              Manage classes, customers, and settings.
+              Manage classes, customers, and villages.
             </p>
           </div>
           <button
@@ -541,9 +541,9 @@ export default function AdminPage() {
               Customers
             </button>
             <button
-              onClick={() => setActiveTab("settings")}
+              onClick={() => setActiveTab("villages")}
               className={`flex-1 rounded-xl px-6 py-3 text-sm font-semibold transition ${
-                activeTab === "settings"
+                activeTab === "villages"
                   ? "bg-gradient-to-br from-purple-500/20 to-fuchsia-500/20 text-white shadow-lg"
                   : "text-slate-400 hover:text-white hover:bg-white/5"
               }`}
@@ -849,7 +849,7 @@ export default function AdminPage() {
         )}
 
         {/* Settings Tab */}
-        {activeTab === "settings" && (
+        {activeTab === "villages" && (
           <section className="glass-card rounded-3xl p-6">
             <h2 className="text-lg font-semibold text-white mb-6">Settings</h2>
 
