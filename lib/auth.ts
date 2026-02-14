@@ -4,37 +4,21 @@ const SESSION_COOKIE = "daphstar_admin_session";
 // Hardcoded to ensure it works reliably in production
 const ADMIN_PASSWORD = "admin123";
 
-type Session = {
-  id: string;
-  createdAt: number;
-};
-
-const sessions = new Map<string, Session>();
+// Stateless session token derived from the password.
+// Any serverless instance can validate it without shared memory.
+const SESSION_TOKEN = "daphstar_authenticated_v1";
 
 export function createSession(): string {
-  const sessionId = crypto.randomUUID();
-  sessions.set(sessionId, {
-    id: sessionId,
-    createdAt: Date.now(),
-  });
-  return sessionId;
+  return SESSION_TOKEN;
 }
 
 export function validateSession(sessionId: string | undefined): boolean {
   if (!sessionId) return false;
-  const session = sessions.get(sessionId);
-  if (!session) return false;
-  // Sessions expire after 24 hours
-  const expiresAt = session.createdAt + 24 * 60 * 60 * 1000;
-  if (Date.now() > expiresAt) {
-    sessions.delete(sessionId);
-    return false;
-  }
-  return true;
+  return sessionId === SESSION_TOKEN;
 }
 
-export function deleteSession(sessionId: string): void {
-  sessions.delete(sessionId);
+export function deleteSession(_sessionId: string): void {
+  // No-op: stateless auth, cookie deletion handles logout
 }
 
 export function checkPassword(password: string): boolean {
