@@ -3,8 +3,6 @@
 import { useEffect, useState } from "react";
 import { fetchClasses, type ClassSummary } from "@/lib/api";
 import { useSession } from "@/lib/session-context";
-import { SkeletonSchedule } from "@/components/ui/Skeleton";
-import { NoClassesFound, ErrorState } from "@/components/ui/EmptyState";
 import { formatTime, formatDuration, formatDateHeader, getDateKey } from "@/lib/utils/date";
 import { getVillageColor, getInitials, LOCATIONS } from "@/lib/constants";
 import { BottomNav } from "@/components/BottomNav";
@@ -48,7 +46,7 @@ export default function Home() {
   const [leaderboardLoading, setLeaderboardLoading] = useState(true);
   const [selectedLocation, setSelectedLocation] = useState<string>("all");
 
-  const loadData = () => {
+  const loadData = async () => {
     const now = new Date();
     const to = new Date();
     to.setDate(now.getDate() + 7);
@@ -57,24 +55,24 @@ export default function Home() {
     const toParam = to.toISOString().split("T")[0] ?? "";
 
     setStatus({ state: "loading" });
-    fetchClasses(fromParam, toParam)
-      .then((data) => {
-        setClasses(data.filter((item) => item.status === "scheduled"));
-        setStatus({ state: "ready" });
-      })
-      .catch(() => {
-        setStatus({
-          state: "error",
-          message: "Unable to load the schedule right now.",
-        });
-      });
-
     setLeaderboardLoading(true);
-    fetch("/api/leaderboard")
-      .then((res) => res.json())
-      .then((data) => setLeaderboard(data.leaderboard || []))
-      .catch(() => {})
-      .finally(() => setLeaderboardLoading(false));
+
+    const [classesResult, leaderboardResult] = await Promise.allSettled([
+      fetchClasses(fromParam, toParam),
+      fetch("/api/leaderboard").then((res) => res.json()),
+    ]);
+
+    if (classesResult.status === "fulfilled") {
+      setClasses(classesResult.value.filter((item) => item.status === "scheduled"));
+      setStatus({ state: "ready" });
+    } else {
+      setStatus({ state: "error", message: "Unable to load the schedule right now." });
+    }
+
+    if (leaderboardResult.status === "fulfilled") {
+      setLeaderboard(leaderboardResult.value.leaderboard || []);
+    }
+    setLeaderboardLoading(false);
   };
 
   useEffect(() => {
@@ -95,8 +93,6 @@ export default function Home() {
         borderBottomLeftRadius: '1.5rem',
         borderBottomRightRadius: '1.5rem',
         boxShadow: '0 2px 24px 0 rgba(20,184,166,0.08)',
-        backdropFilter: 'blur(2px)',
-        WebkitBackdropFilter: 'blur(2px)'
       }}>
         {/* Background gradient decoration - reduced height, more subtle */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -216,7 +212,7 @@ export default function Home() {
                         <Link
                           key={item.id}
                           href={isFull ? "#" : `/booking?${query}`}
-                          className={`block rounded-2xl bg-white/10 backdrop-blur-sm p-4 transition hover:bg-white/15 ${isFull ? 'opacity-60' : ''}`}
+                          className={`block rounded-2xl bg-white/10 p-4 transition hover:bg-white/15 ${isFull ? 'opacity-60' : ''}`}
                           onClick={(e) => isFull && e.preventDefault()}
                         >
                           <div className="flex items-center gap-4">
@@ -278,7 +274,7 @@ export default function Home() {
                 return (
                   <div
                     key={entry.customerName}
-                    className="flex items-center gap-3 rounded-xl bg-white/10 backdrop-blur-sm p-3"
+                    className="flex items-center gap-3 rounded-xl bg-white/10 p-3"
                   >
                     {/* Rank */}
                     <div className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${

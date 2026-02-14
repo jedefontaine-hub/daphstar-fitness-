@@ -40,7 +40,6 @@ body {
 /* Glass card - dark mode glass morphism */
 .glass-card {
   background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.15);
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
 }
@@ -48,9 +47,18 @@ body {
 /* Light glass card for contrast areas */
 .glass-card-light {
   background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(12px);
   border: 1px solid rgba(0, 0, 0, 0.08);
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+}
+
+/* Only enable expensive blur on desktop where GPU can handle it */
+@media (min-width: 768px) {
+  .glass-card {
+    backdrop-filter: blur(12px);
+  }
+  .glass-card-light {
+    backdrop-filter: blur(12px);
+  }
 }
 
 /* Primary button - teal glow */

@@ -7,6 +7,7 @@ import { SuccessAnimation } from "@/components/ui/SuccessAnimation";
 import { useToast } from "@/components/ui/Toast";
 import { PageTransition } from "@/components/ui/PageTransition";
 import { SkeletonProfileForm } from "@/components/ui/Skeleton";
+import { useSession } from "@/lib/session-context";
 
 type BookingStatus =
   | { state: "idle" }
@@ -72,6 +73,7 @@ function formatDate(value: Date): string {
 function BookingContent() {
   const searchParams = useSearchParams();
   const toast = useToast();
+  const { customer } = useSession();
   const preferredClassId = searchParams.get("classId");
   const fallbackTitle = searchParams.get("title");
   const fallbackStart = searchParams.get("startTime");
@@ -106,20 +108,17 @@ function BookingContent() {
         }
       : null;
 
+  // Pre-fill form from session context (no extra fetch needed)
   useEffect(() => {
-    // Fetch customer session to pre-fill form
-    fetch("/api/auth/session")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.authenticated && data.customer) {
-          setCustomerName(data.customer.name);
-          setCustomerEmail(data.customer.email);
-          setRetirementVillage(data.customer.retirementVillage || "");
-          setIsLoggedIn(true);
-        }
-      })
-      .catch(() => {});
+    if (customer) {
+      setCustomerName(customer.name);
+      setCustomerEmail(customer.email);
+      setRetirementVillage(customer.retirementVillage || "");
+      setIsLoggedIn(true);
+    }
+  }, [customer]);
 
+  useEffect(() => {
     const now = new Date();
     const to = new Date();
     to.setDate(now.getDate() + 7);
