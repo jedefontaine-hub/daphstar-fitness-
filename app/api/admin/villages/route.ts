@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/db";
 import { isAdminAuthenticated } from "@/lib/auth";
-
-const prisma = new PrismaClient();
 
 // GET - List all villages
 export async function GET() {
