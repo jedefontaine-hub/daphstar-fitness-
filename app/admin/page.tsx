@@ -27,7 +27,8 @@ type ModalState =
   | { type: "cancelConfirm"; classItem: AdminClassSummary }
   | { type: "editCustomer"; customer: Customer }
   | { type: "createCustomer" }
-  | { type: "deleteCustomerConfirm"; customer: Customer };
+  | { type: "deleteCustomerConfirm"; customer: Customer }
+  | { type: "deleteVillageConfirm"; village: Village };
 
 type Customer = {
   id: string;
@@ -249,17 +250,18 @@ export default function AdminPage() {
     }
   };
 
-  const handleDeleteVillage = async (id: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
+  const handleDeleteVillage = async () => {
+    if (modal.type !== "deleteVillageConfirm") return;
 
     try {
-      const res = await fetch(`/api/admin/villages/${id}`, {
+      const res = await fetch(`/api/admin/villages/${modal.village.id}`, {
         method: "DELETE",
       });
 
       if (!res.ok) throw new Error("Failed to delete");
 
       toast.success("Village deleted successfully");
+      handleCloseModal();
       loadVillages();
     } catch {
       toast.error("Failed to delete village");
@@ -901,7 +903,7 @@ export default function AdminPage() {
                             <span className="text-slate-300 group-hover:text-white transition">{village.name}</span>
                           </div>
                           <button
-                            onClick={() => handleDeleteVillage(village.id, village.name)}
+                            onClick={() => setModal({ type: "deleteVillageConfirm", village })}
                             className="opacity-0 group-hover:opacity-100 rounded-full border border-rose-500/30 bg-rose-500/10 px-3 py-1 text-xs font-semibold text-rose-300 transition hover:border-rose-500 hover:bg-rose-500/20"
                           >
                             Delete
@@ -1355,6 +1357,31 @@ export default function AdminPage() {
                   </button>
                   <button type="button" className="rounded-full bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-rose-500/30 transition hover:bg-rose-600" onClick={handleDeleteCustomer}>
                     Delete Customer
+                  </button>
+                </div>
+              </>
+            ) : null}
+
+            {/* Delete Village Confirm Modal */}
+            {modal.type === "deleteVillageConfirm" ? (
+              <>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-500/20">
+                    <svg className="h-5 w-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                  <h2 className="text-lg font-semibold text-rose-400">Delete Village?</h2>
+                </div>
+                <p className="mt-4 text-sm text-slate-400">
+                  Are you sure you want to delete <strong className="text-white">{modal.village.name}</strong>? This action cannot be undone.
+                </p>
+                <div className="mt-6 flex justify-end gap-3">
+                  <button type="button" className="rounded-full border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-semibold text-slate-300 transition hover:bg-white/10" onClick={handleCloseModal}>
+                    Cancel
+                  </button>
+                  <button type="button" className="rounded-full bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-rose-500/30 transition hover:bg-rose-600" onClick={handleDeleteVillage}>
+                    Delete Village
                   </button>
                 </div>
               </>
