@@ -27,7 +27,8 @@ type ModalState =
   | { type: "editCustomer"; customer: Customer }
   | { type: "createCustomer" }
   | { type: "deleteCustomerConfirm"; customer: Customer }
-  | { type: "deleteVillageConfirm"; village: Village };
+  | { type: "deleteVillageConfirm"; village: Village }
+  | { type: "bulkCancelConfirm"; classIds: string[] };
 
 type Customer = {
   id: string;
@@ -111,6 +112,7 @@ export default function AdminPage() {
   const [expiredPasses, setExpiredPasses] = useState<CustomerWithPass[]>([]);
   const [lowPasses, setLowPasses] = useState<CustomerWithPass[]>([]);
   const [showExpiredPasses, setShowExpiredPasses] = useState(true);
+  const [selectedClassIds, setSelectedClassIds] = useState<Set<string>>(new Set());
 
   // Customers state
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -267,6 +269,7 @@ export default function AdminPage() {
   };
 
   useEffect(() => {
+    setSelectedClassIds(new Set());
     if (activeTab === "classes") {
       loadClasses();
       loadExpiredPasses();
@@ -371,6 +374,39 @@ export default function AdminPage() {
       toast.success("Class cancelled");
     } catch {
       alert("Failed to cancel class.");
+    }
+  };
+
+  const handleBulkCancel = async () => {
+    if (modal.type !== "bulkCancelConfirm") return;
+    try {
+      await Promise.all(modal.classIds.map((id) => adminCancelClass(id)));
+      handleCloseModal();
+      setSelectedClassIds(new Set());
+      loadClasses();
+      toast.success(`${modal.classIds.length} classes cancelled`);
+    } catch {
+      alert("Failed to cancel some classes.");
+    }
+  };
+
+  const toggleClassSelection = (id: string) => {
+    setSelectedClassIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const selectableClasses = classes.filter((c) => c.status !== "cancelled");
+  const allSelected = selectableClasses.length > 0 && selectableClasses.every((c) => selectedClassIds.has(c.id));
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedClassIds(new Set());
+    } else {
+      setSelectedClassIds(new Set(selectableClasses.map((c) => c.id)));
     }
   };
 
@@ -657,14 +693,38 @@ export default function AdminPage() {
 
             <section className="glass-card rounded-3xl p-6">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-white">Classes</h2>
-                <button
-                  className="btn-glow rounded-full px-5 py-2.5 text-sm font-semibold text-white"
-                  type="button"
-                  onClick={handleOpenCreate}
-                >
-                  + Create Class
-                </button>
+                <div className="flex items-center gap-3">
+                  <h2 className="text-lg font-semibold text-white">Classes</h2>
+                  {selectableClasses.length > 0 && (
+                    <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-400 hover:text-slate-300">
+                      <input
+                        type="checkbox"
+                        checked={allSelected}
+                        onChange={toggleSelectAll}
+                        className="h-3.5 w-3.5 cursor-pointer rounded border-white/20 bg-white/5 accent-purple-500"
+                      />
+                      Select all
+                    </label>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  {selectedClassIds.size > 0 && (
+                    <button
+                      className="rounded-full border border-rose-500/30 bg-rose-500/10 px-5 py-2.5 text-sm font-semibold text-rose-300 transition hover:border-rose-500 hover:bg-rose-500/20"
+                      type="button"
+                      onClick={() => setModal({ type: "bulkCancelConfirm", classIds: Array.from(selectedClassIds) })}
+                    >
+                      Cancel Selected ({selectedClassIds.size})
+                    </button>
+                  )}
+                  <button
+                    className="btn-glow rounded-full px-5 py-2.5 text-sm font-semibold text-white"
+                    type="button"
+                    onClick={handleOpenCreate}
+                  >
+                    + Create Class
+                  </button>
+                </div>
               </div>
 
               {classesStatus.state === "loading" ? (
@@ -692,6 +752,14 @@ export default function AdminPage() {
                       }`}
                     >
                       <div className="flex items-center gap-4">
+                        {!isCancelled && (
+                          <input
+                            type="checkbox"
+                            checked={selectedClassIds.has(item.id)}
+                            onChange={() => toggleClassSelection(item.id)}
+                            className="h-4 w-4 cursor-pointer rounded border-white/20 bg-white/5 accent-purple-500"
+                          />
+                        )}
                         <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${
                           isCancelled
                             ? "bg-slate-500/20"
@@ -1226,6 +1294,42 @@ export default function AdminPage() {
                     onClick={handleCancelClass}
                   >
                     Cancel class
+                  </button>
+                </div>
+              </>
+            ) : null}
+
+            {/* Bulk Cancel Confirm Modal */}
+            {modal.type === "bulkCancelConfirm" ? (
+              <>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-500/20">
+                    <svg className="h-5 w-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                  <h2 className="text-lg font-semibold text-rose-400">
+                    Cancel {modal.classIds.length} Classes?
+                  </h2>
+                </div>
+                <p className="mt-4 text-sm text-slate-400">
+                  This will cancel <strong className="text-white">{modal.classIds.length} selected classes</strong> and
+                  notify all attendees. This action cannot be undone.
+                </p>
+                <div className="mt-6 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    className="rounded-full border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-semibold text-slate-300 transition hover:bg-white/10"
+                    onClick={handleCloseModal}
+                  >
+                    Keep classes
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-full bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-rose-500/30 transition hover:bg-rose-600"
+                    onClick={handleBulkCancel}
+                  >
+                    Cancel {modal.classIds.length} classes
                   </button>
                 </div>
               </>
