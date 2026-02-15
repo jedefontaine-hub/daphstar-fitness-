@@ -6,7 +6,6 @@ import { cancelBooking } from "@/lib/api";
 import { ConfirmModal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { BottomNav } from "@/components/BottomNav";
-import { SessionPassTracker } from "@/components/SessionPassTracker";
 import { CompletedPassHistory } from "@/components/CompletedPassHistory";
 
 type DashboardBooking = {
@@ -79,32 +78,58 @@ type LoadStatus =
   | { state: "error"; message: string }
   | { state: "unauthorized" };
 
-const DEFAULT_VILLAGE_STYLE = { bg: "bg-teal-500/20", text: "text-teal-400", border: "border-teal-500/30" };
-
-function getVillageColor(village?: string) {
-  if (!village) return DEFAULT_VILLAGE_STYLE;
-  return DEFAULT_VILLAGE_STYLE;
-}
-
 function formatDateTime(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.valueOf())) return "";
-  return d.toLocaleString("en-US", {
+  return d.toLocaleString("en-AU", {
     weekday: "short",
     month: "short",
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
+    timeZone: "Australia/Brisbane",
   });
 }
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.valueOf())) return "";
-  return d.toLocaleDateString("en-US", {
+  return d.toLocaleDateString("en-AU", {
     month: "short",
     day: "numeric",
+    timeZone: "Australia/Brisbane",
   });
+}
+
+function formatTime(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.valueOf())) return "";
+  return d.toLocaleString("en-AU", {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "Australia/Brisbane",
+  });
+}
+
+function getNextClassMessage(bookings: DashboardBooking[]): string | null {
+  if (bookings.length === 0) return null;
+  const next = bookings[0];
+  const now = new Date();
+  const classDate = new Date(next.classStartTime);
+  const brisbaneNow = new Date(now.toLocaleString("en-US", { timeZone: "Australia/Brisbane" }));
+  const brisbaneClass = new Date(classDate.toLocaleString("en-US", { timeZone: "Australia/Brisbane" }));
+
+  const isToday = brisbaneNow.toDateString() === brisbaneClass.toDateString();
+  const tomorrow = new Date(brisbaneNow);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const isTomorrow = tomorrow.toDateString() === brisbaneClass.toDateString();
+
+  const time = formatTime(next.classStartTime);
+  const location = next.classLocation ? ` at ${next.classLocation}` : "";
+
+  if (isToday) return `Next class today at ${time}${location}`;
+  if (isTomorrow) return `Next class tomorrow at ${time}${location}`;
+  return `Next class ${formatDateTime(next.classStartTime)}${location}`;
 }
 
 export default function DashboardPage() {
@@ -148,7 +173,6 @@ export default function DashboardPage() {
     try {
       await cancelBooking(bookingToCancel.cancelToken);
       toast.success("Booking cancelled successfully");
-      // Refresh dashboard
       const res = await fetch("/api/dashboard");
       if (res.ok) {
         const data = await res.json();
@@ -215,6 +239,10 @@ export default function DashboardPage() {
   }
 
   const { customer, upcomingBookings, pastBookings, stats, sessionPass, completedPasses } = status.data;
+  const nextClassMsg = getNextClassMessage(upcomingBookings);
+  const used = sessionPass.total - sessionPass.remaining;
+  const isPassExpired = sessionPass.remaining === 0;
+  const isPassLow = sessionPass.remaining > 0 && sessionPass.remaining <= 2;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-teal-900 pb-20">
@@ -249,117 +277,123 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <main className="relative mx-auto max-w-5xl px-6 py-10">
-        {/* Welcome section */}
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="gradient-text text-3xl font-bold">
-              Welcome back, {customer.name.split(" ")[0]}!
-            </h2>
+      <main className="relative mx-auto max-w-5xl px-6 py-8">
+        {/* Welcome section with next class reminder */}
+        <div className="mb-6">
+          <h2 className="gradient-text text-3xl font-bold">
+            Welcome back, {customer.name.split(" ")[0]}!
+          </h2>
+          <div className="mt-2 flex flex-wrap items-center gap-3">
             {customer.retirementVillage && (
-              <span className={`mt-3 inline-flex items-center gap-2 rounded-full border border-white/20 px-4 py-1.5 text-base font-medium ${getVillageColor(customer.retirementVillage).bg} ${getVillageColor(customer.retirementVillage).text}`}>
-                <span className={`h-2.5 w-2.5 rounded-full ${getVillageColor(customer.retirementVillage).text.replace('text-', 'bg-')}`} />
+              <span className="inline-flex items-center gap-2 rounded-full border border-teal-500/30 bg-teal-500/10 px-3 py-1 text-sm font-medium text-teal-400">
+                <span className="h-2 w-2 rounded-full bg-teal-400" />
                 {customer.retirementVillage}
               </span>
             )}
           </div>
+          {nextClassMsg && (
+            <p className="mt-3 text-base text-slate-300" suppressHydrationWarning>
+              {nextClassMsg}
+            </p>
+          )}
         </div>
 
-        {/* Stats grid */}
-        <div className="mb-8 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <div className="glass-card rounded-2xl p-4">
-            <div className="flex flex-col items-center gap-2 text-center sm:flex-row sm:gap-4 sm:text-left">
-              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-teal-500/20">
-                <svg className="h-6 w-6 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-white">{stats.totalAttended}</p>
-                <p className="text-sm text-slate-400">Classes Attended</p>
-              </div>
-            </div>
+        {/* Stats grid - colored numbers, no icon backgrounds */}
+        <div className="mb-6 grid grid-cols-4 gap-2 sm:gap-3">
+          <div className="glass-card rounded-2xl p-3 sm:p-4 text-center">
+            <p className="text-2xl sm:text-3xl font-bold text-teal-400">{stats.totalAttended}</p>
+            <p className="mt-1 text-xs sm:text-sm text-slate-400">Attended</p>
           </div>
-
-          <div className="glass-card rounded-2xl p-4">
-            <div className="flex flex-col items-center gap-2 text-center sm:flex-row sm:gap-4 sm:text-left">
-              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-500/20">
-                <svg className="h-6 w-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-white">{stats.totalUpcoming}</p>
-                <p className="text-sm text-slate-400">Upcoming</p>
-              </div>
-            </div>
+          <div className="glass-card rounded-2xl p-3 sm:p-4 text-center">
+            <p className="text-2xl sm:text-3xl font-bold text-emerald-400">{stats.totalUpcoming}</p>
+            <p className="mt-1 text-xs sm:text-sm text-slate-400">Upcoming</p>
           </div>
-
-          <div className="glass-card rounded-2xl p-4">
-            <div className="flex flex-col items-center gap-2 text-center sm:flex-row sm:gap-4 sm:text-left">
-              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-amber-500/20">
-                <svg className="h-6 w-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-white">{stats.streak}</p>
-                <p className="text-sm text-slate-400">Week Streak</p>
-              </div>
-            </div>
+          <div className="glass-card rounded-2xl p-3 sm:p-4 text-center">
+            <p className="text-2xl sm:text-3xl font-bold text-amber-400">{stats.streak}</p>
+            <p className="mt-1 text-xs sm:text-sm text-slate-400">Streak</p>
           </div>
-
-          <div className="glass-card rounded-2xl p-4">
-            <div className="flex flex-col items-center gap-2 text-center sm:flex-row sm:gap-4 sm:text-left">
-              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-rose-500/20">
-                <svg className="h-6 w-6 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-white">
-                  {stats.rank ? `#${stats.rank}` : "—"}
-                </p>
-                <p className="text-sm text-slate-400">Leaderboard</p>
-              </div>
-            </div>
+          <div className="glass-card rounded-2xl p-3 sm:p-4 text-center">
+            <p className="text-2xl sm:text-3xl font-bold text-rose-400">
+              {stats.rank ? `#${stats.rank}` : "—"}
+            </p>
+            <p className="mt-1 text-xs sm:text-sm text-slate-400">Rank</p>
           </div>
         </div>
 
-        {/* Session Pass Tracker */}
-        <div className="mb-8">
-          <SessionPassTracker
-            remaining={sessionPass.remaining}
-            total={sessionPass.total}
-            purchaseDate={sessionPass.purchaseDate ?? undefined}
-            history={sessionPass.history}
-          />
-        </div>
+        {/* Session Pass - compact */}
+        {sessionPass.total > 0 && (
+          <div className={`mb-6 glass-card rounded-2xl p-4 sm:p-5 border ${
+            isPassExpired
+              ? "border-red-500/50"
+              : isPassLow
+              ? "border-amber-500/50"
+              : "border-teal-500/20"
+          }`}>
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h3 className="text-base font-semibold text-white">
+                  {isPassExpired ? "Pass Expired" : "Session Pass"}
+                </h3>
+                {sessionPass.purchaseDate && (
+                  <p className="text-xs text-slate-400">
+                    Purchased {formatDate(sessionPass.purchaseDate)}
+                  </p>
+                )}
+              </div>
+              <p className={`text-2xl font-bold ${
+                isPassExpired ? "text-red-400" : isPassLow ? "text-amber-400" : "text-teal-400"
+              }`}>
+                {sessionPass.remaining}/{sessionPass.total}
+              </p>
+            </div>
+            <div className="h-2.5 bg-white/10 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${
+                  isPassExpired ? "bg-red-500" : isPassLow ? "bg-amber-500" : "bg-teal-500"
+                }`}
+                style={{ width: `${(used / sessionPass.total) * 100}%` }}
+              />
+            </div>
+            <p className="text-xs text-slate-400 mt-1.5 text-center">
+              {used} of {sessionPass.total} sessions used
+            </p>
+            {isPassExpired && (
+              <p className="mt-2 text-sm text-red-300 text-center">
+                Please purchase a new pass to continue booking classes.
+              </p>
+            )}
+            {isPassLow && !isPassExpired && (
+              <p className="mt-2 text-sm text-amber-300 text-center">
+                Only {sessionPass.remaining} session{sessionPass.remaining > 1 ? "s" : ""} left — consider renewing soon!
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Favorite class */}
         {stats.favoriteClass && (
-          <div className="mb-8 glass-card rounded-2xl p-5">
-            <p className="text-base text-slate-400">
-              Your favorite class: <span className="font-semibold text-teal-400">{stats.favoriteClass}</span>
+          <div className="mb-6 glass-card rounded-2xl p-4">
+            <p className="text-sm text-slate-400">
+              Favourite class: <span className="font-semibold text-teal-400">{stats.favoriteClass}</span>
             </p>
           </div>
         )}
 
         {/* Upcoming bookings */}
-        <section className="mb-8">
-          <h3 className="mb-4 flex items-center gap-2 text-xl font-semibold text-white">
-            <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+        <section className="mb-6">
+          <h3 className="mb-3 flex items-center gap-2 text-lg font-semibold text-white">
+            <span className="h-2 w-2 rounded-full bg-emerald-500" />
             Upcoming Classes ({upcomingBookings.length})
           </h3>
           {upcomingBookings.length === 0 ? (
-            <div className="glass-card rounded-2xl p-8 text-center">
-              <p className="text-lg text-slate-400">No upcoming bookings</p>
+            <div className="glass-card rounded-2xl p-6 text-center">
+              <p className="text-slate-400">No upcoming classes booked yet.</p>
               <a
                 href="/"
-                className="mt-4 inline-flex items-center gap-2 rounded-full border border-teal-500/30 bg-teal-500/20 px-6 py-3 text-base font-medium text-teal-300 hover:bg-teal-500/30 transition"
+                className="mt-3 inline-flex items-center gap-2 rounded-full bg-teal-500/20 px-5 py-2.5 text-sm font-medium text-teal-300 hover:bg-teal-500/30 transition"
               >
-                Browse classes to book
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                Book your first class
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </a>
@@ -369,72 +403,81 @@ export default function DashboardPage() {
               {upcomingBookings.map((booking) => (
                 <div
                   key={booking.id}
-                  className="glass-card flex flex-col gap-4 rounded-2xl p-5 sm:flex-row sm:items-center sm:justify-between"
+                  className="glass-card group rounded-2xl p-4 transition hover:border-white/10"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className={`flex h-14 w-14 items-center justify-center rounded-xl ${getVillageColor(booking.classLocation).bg}`}>
-                      <svg className={`h-7 w-7 ${getVillageColor(booking.classLocation).text}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h4 className="text-lg font-semibold text-white">{booking.classTitle}</h4>
-                      {booking.classLocation && (
-                        <p className={`text-sm font-medium ${getVillageColor(booking.classLocation).text}`}>
-                          {booking.classLocation}
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-teal-500/20">
+                        <svg className="h-5 w-5 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-white">{booking.classTitle}</h4>
+                        {booking.classLocation && (
+                          <p className="text-sm text-teal-400">{booking.classLocation}</p>
+                        )}
+                        <p className="text-sm text-slate-400" suppressHydrationWarning>
+                          {formatDateTime(booking.classStartTime)}
                         </p>
-                      )}
-                      <p className="text-base text-slate-400" suppressHydrationWarning>
-                        {formatDateTime(booking.classStartTime)}
-                      </p>
+                      </div>
                     </div>
+                    <button
+                      onClick={() => openCancelModal(booking)}
+                      disabled={cancellingId === booking.id}
+                      className="mt-1 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-400 transition hover:bg-red-500/20 hover:text-red-300 disabled:opacity-50"
+                    >
+                      {cancellingId === booking.id ? "..." : "Cancel"}
+                    </button>
                   </div>
-                  <button
-                    onClick={() => openCancelModal(booking)}
-                    disabled={cancellingId === booking.id}
-                    className="rounded-full border-2 border-red-500/50 bg-red-500/20 px-6 py-3 text-base font-semibold text-red-300 transition hover:border-red-400 hover:bg-red-500/30 disabled:opacity-50"
-                  >
-                    {cancellingId === booking.id ? "..." : "Cancel"}
-                  </button>
                 </div>
               ))}
+              {upcomingBookings.length <= 1 && (
+                <a
+                  href="/"
+                  className="glass-card flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-white/10 p-4 text-sm font-medium text-slate-400 transition hover:border-teal-500/30 hover:text-teal-400"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Book another class
+                </a>
+              )}
             </div>
           )}
         </section>
 
         {/* Past bookings */}
         <section>
-          <h3 className="mb-4 flex items-center gap-2 text-xl font-semibold text-white">
-            <span className="h-2.5 w-2.5 rounded-full bg-slate-500" />
+          <h3 className="mb-3 flex items-center gap-2 text-lg font-semibold text-white">
+            <span className="h-2 w-2 rounded-full bg-slate-500" />
             Recent Attendance
           </h3>
           {pastBookings.length === 0 ? (
-            <div className="glass-card rounded-2xl p-8 text-center">
-              <p className="text-lg text-slate-400">No past classes yet</p>
+            <div className="glass-card rounded-2xl p-6 text-center">
+              <p className="text-slate-400">Complete your first class to start tracking!</p>
             </div>
           ) : (
             <div className="glass-card rounded-2xl divide-y divide-white/10">
               {pastBookings.map((booking) => (
                 <div
                   key={booking.id}
-                  className="flex items-center justify-between p-5"
+                  className="flex items-center justify-between p-4"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400">
-                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400">
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                     </div>
                     <div>
-                      <p className="text-lg font-medium text-white">{booking.classTitle}</p>
+                      <p className="font-medium text-white">{booking.classTitle}</p>
                       {booking.classLocation && (
-                        <p className={`text-sm ${getVillageColor(booking.classLocation).text}`}>
-                          {booking.classLocation}
-                        </p>
+                        <p className="text-xs text-teal-400">{booking.classLocation}</p>
                       )}
                     </div>
                   </div>
-                  <p className="text-base text-slate-300" suppressHydrationWarning>
+                  <p className="text-sm text-slate-400" suppressHydrationWarning>
                     {formatDate(booking.classStartTime)}
                   </p>
                 </div>
@@ -445,7 +488,7 @@ export default function DashboardPage() {
 
         {/* Completed Pass History */}
         {completedPasses && completedPasses.length > 0 && (
-          <section className="mt-8">
+          <section className="mt-6">
             <CompletedPassHistory passes={completedPasses} />
           </section>
         )}
