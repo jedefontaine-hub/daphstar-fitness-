@@ -329,40 +329,6 @@ function BookingContent() {
 
           <form className="grid gap-4" onSubmit={handleSubmit}>
             <label className="grid gap-1.5 text-sm font-medium text-slate-300">
-              Retirement Village
-              <select
-                className="input-dark h-12 rounded-lg px-3 text-sm"
-                value={retirementVillage}
-                onChange={(event) => setRetirementVillage(event.target.value)}
-              >
-                <option value="">Select your village</option>
-                <option value="Sunrise Village">Sunrise Village</option>
-                <option value="Oakwood Gardens">Oakwood Gardens</option>
-                <option value="Meadow Creek">Meadow Creek</option>
-                <option value="Lakeside Manor">Lakeside Manor</option>
-                <option value="Hillcrest Retirement">Hillcrest Retirement</option>
-                <option value="Independent">Independent / Other</option>
-              </select>
-            </label>
-            <label className="grid gap-1.5 text-sm font-medium text-slate-300">
-              Class
-              <select
-                className="input-dark h-12 rounded-lg px-3 text-sm"
-                value={classId}
-                onChange={(event) => setClassId(event.target.value)}
-              >
-                {classes.length === 0 ? (
-                  <option value="">No classes available</option>
-                ) : (
-                  classes.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.title} ({item.spotsLeft} spots left)
-                    </option>
-                  ))
-                )}
-              </select>
-            </label>
-            <label className="grid gap-1.5 text-sm font-medium text-slate-300">
               Full name
               <input
                 className="input-dark h-12 rounded-lg px-3 text-sm"
