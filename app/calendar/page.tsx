@@ -3,10 +3,30 @@
 import { useEffect, useState } from "react";
 import { fetchClasses, type ClassSummary } from "@/lib/api";
 import { formatTime, formatDuration, isSameDay, getWeekDates, getMonthDates, getDateKey } from "@/lib/utils/date";
-import { LOCATIONS, getVillageColor } from "@/lib/constants";
 import { BottomNav } from "@/components/BottomNav";
 
 type ViewMode = "week" | "month";
+
+const CALENDAR_COLORS = [
+  { bg: "bg-teal-500/20", text: "text-teal-300", border: "border-teal-500/30", dot: "bg-teal-400", hover: "hover:bg-teal-500/30" },
+  { bg: "bg-emerald-500/20", text: "text-emerald-300", border: "border-emerald-500/30", dot: "bg-emerald-400", hover: "hover:bg-emerald-500/30" },
+  { bg: "bg-purple-500/20", text: "text-purple-300", border: "border-purple-500/30", dot: "bg-purple-400", hover: "hover:bg-purple-500/30" },
+  { bg: "bg-sky-500/20", text: "text-sky-300", border: "border-sky-500/30", dot: "bg-sky-400", hover: "hover:bg-sky-500/30" },
+  { bg: "bg-amber-500/20", text: "text-amber-300", border: "border-amber-500/30", dot: "bg-amber-400", hover: "hover:bg-amber-500/30" },
+  { bg: "bg-rose-500/20", text: "text-rose-300", border: "border-rose-500/30", dot: "bg-rose-400", hover: "hover:bg-rose-500/30" },
+];
+
+const DEFAULT_CAL_COLOR = { bg: "bg-slate-500/20", text: "text-slate-300", border: "border-slate-500/30", dot: "bg-slate-400", hover: "hover:bg-slate-500/30" };
+
+const villageColorMap = new Map<string, typeof DEFAULT_CAL_COLOR>();
+
+function getCalendarVillageColor(village?: string) {
+  if (!village) return DEFAULT_CAL_COLOR;
+  if (villageColorMap.has(village)) return villageColorMap.get(village)!;
+  const color = CALENDAR_COLORS[villageColorMap.size % CALENDAR_COLORS.length];
+  villageColorMap.set(village, color);
+  return color;
+}
 
 export default function CalendarPage() {
   const [classes, setClasses] = useState<ClassSummary[]>([]);
@@ -14,6 +34,11 @@ export default function CalendarPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("week");
   const [isLoading, setIsLoading] = useState(true);
   const [selectedLocation, setSelectedLocation] = useState<string>("all");
+  const [villages, setVillages] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    fetch("/api/villages").then(r => r.json()).then(setVillages).catch(() => {});
+  }, []);
 
   const today = new Date();
   const weekDates = getWeekDates(currentDate);
@@ -152,9 +177,9 @@ export default function CalendarPage() {
               className="flex-1 sm:flex-none rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm font-medium text-slate-200 focus:border-teal-400 focus:outline-none"
             >
               <option value="all">All Locations</option>
-              {LOCATIONS.map((loc) => (
-                <option key={loc} value={loc}>
-                  {loc}
+              {villages.map((v) => (
+                <option key={v.id} value={v.name}>
+                  {v.name}
                 </option>
               ))}
             </select>
@@ -222,7 +247,7 @@ export default function CalendarPage() {
                               endTime: c.endTime,
                               spotsLeft: String(c.spotsLeft),
                             }).toString();
-                            const colors = getVillageColor(c.location);
+                            const colors = getCalendarVillageColor(c.location);
                             
                             return (
                               <a
@@ -240,7 +265,7 @@ export default function CalendarPage() {
                                 </div>
                                 
                                 {/* Village color bar */}
-                                <div className={`w-1 h-10 rounded-full flex-shrink-0 ${colors.bg.replace('/60', '')}`} />
+                                <div className={`w-1 h-10 rounded-full flex-shrink-0 ${colors.dot}`} />
                                 
                                 {/* Info */}
                                 <div className="flex-1 min-w-0">
@@ -311,7 +336,7 @@ export default function CalendarPage() {
                                 endTime: c.endTime,
                                 spotsLeft: String(c.spotsLeft),
                               }).toString();
-                              const colors = getVillageColor(c.location);
+                              const colors = getCalendarVillageColor(c.location);
                               return (
                                 <a
                                   key={c.id}
@@ -366,12 +391,12 @@ export default function CalendarPage() {
                             {/* On mobile, show dots. On desktop, show labels */}
                             <div className="sm:hidden flex gap-0.5 flex-wrap">
                               {dayClasses.slice(0, 4).map((c) => {
-                                const colors = getVillageColor(c.location);
+                                const colors = getCalendarVillageColor(c.location);
                                 const isFull = c.spotsLeft === 0;
                                 return (
                                   <div
                                     key={c.id}
-                                    className={`h-2 w-2 rounded-full ${isFull ? 'bg-slate-300' : colors.bg.replace('/60', '')}`}
+                                    className={`h-2 w-2 rounded-full ${isFull ? 'bg-slate-300' : colors.dot}`}
                                     title={`${formatTime(c.startTime)} - ${c.title}`}
                                   />
                                 );
@@ -392,7 +417,7 @@ export default function CalendarPage() {
                                   endTime: c.endTime,
                                   spotsLeft: String(c.spotsLeft),
                                 }).toString();
-                                const colors = getVillageColor(c.location);
+                                const colors = getCalendarVillageColor(c.location);
                                 return (
                                   <a
                                     key={c.id}
@@ -423,29 +448,20 @@ export default function CalendarPage() {
               </div>
             </div>
 
-            {/* Legend - simplified on mobile */}
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-3 sm:gap-4 text-xs sm:text-sm text-slate-400">
-              <div className="flex items-center gap-1.5">
-                <span className="h-3 w-3 rounded bg-amber-400" />
-                <span className="hidden sm:inline">Sunrise Village</span>
-                <span className="sm:hidden">Sunrise</span>
+            {/* Legend - dynamic from villages */}
+            {villages.length > 0 && (
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-3 sm:gap-4 text-xs sm:text-sm text-slate-400">
+                {villages.map((v) => {
+                  const colors = getCalendarVillageColor(v.name);
+                  return (
+                    <div key={v.id} className="flex items-center gap-1.5">
+                      <span className={`h-3 w-3 rounded ${colors.dot}`} />
+                      <span>{v.name}</span>
+                    </div>
+                  );
+                })}
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="h-3 w-3 rounded bg-emerald-400" />
-                <span className="hidden sm:inline">Oakwood Gardens</span>
-                <span className="sm:hidden">Oakwood</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="h-3 w-3 rounded bg-sky-400" />
-                <span className="hidden sm:inline">Meadow Creek</span>
-                <span className="sm:hidden">Meadow</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="h-3 w-3 rounded bg-violet-400" />
-                <span className="hidden sm:inline">Lakeside Manor</span>
-                <span className="sm:hidden">Lakeside</span>
-              </div>
-            </div>
+            )}
           </>
         )}
       </main>
