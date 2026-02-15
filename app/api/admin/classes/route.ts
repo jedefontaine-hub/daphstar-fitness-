@@ -27,6 +27,7 @@ export async function GET(request: Request) {
         startTime: item.startTime,
         endTime: item.endTime,
         capacity: item.capacity,
+        location: item.location,
         booked,
         spotsLeft: Math.max(item.capacity - booked, 0),
         status: item.status,

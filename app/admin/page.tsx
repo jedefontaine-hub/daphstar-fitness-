@@ -12,7 +12,6 @@ import {
   type Attendee,
 } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
-import { LOCATIONS } from "@/lib/constants";
 
 type PageStatus =
   | { state: "idle" }
@@ -125,7 +124,6 @@ export default function AdminPage() {
 
   const [modal, setModal] = useState<ModalState>({ type: "none" });
 
-  const locations = LOCATIONS;
 
   useEffect(() => {
     fetch("/api/admin/session")
@@ -272,8 +270,10 @@ export default function AdminPage() {
     if (activeTab === "classes") {
       loadClasses();
       loadExpiredPasses();
+      loadVillages();
     } else if (activeTab === "customers") {
       loadCustomers();
+      loadVillages();
     } else if (activeTab === "villages") {
       loadVillages();
     }
@@ -344,6 +344,7 @@ export default function AdminPage() {
     const startTime = formData.get("startTime") as string;
     const endTime = formData.get("endTime") as string;
     const capacity = Number(formData.get("capacity"));
+    const location = (formData.get("location") as string) || undefined;
 
     try {
       await adminUpdateClass(modal.classItem.id, {
@@ -351,6 +352,7 @@ export default function AdminPage() {
         startTime: new Date(startTime).toISOString(),
         endTime: new Date(endTime).toISOString(),
         capacity,
+        location,
       });
       handleCloseModal();
       loadClasses();
@@ -988,9 +990,9 @@ export default function AdminPage() {
                       className="input-dark h-12 rounded-xl px-4 text-sm"
                     >
                       <option value="">Select location...</option>
-                      {locations.map((loc) => (
-                        <option key={loc} value={loc}>
-                          {loc}
+                      {villages.map((v) => (
+                        <option key={v.id} value={v.name}>
+                          {v.name}
                         </option>
                       ))}
                     </select>
@@ -1090,6 +1092,21 @@ export default function AdminPage() {
                       className="input-dark h-12 rounded-xl px-4 text-sm"
                       required
                     />
+                  </label>
+                  <label className="grid gap-2 text-sm font-medium text-slate-300">
+                    Location
+                    <select
+                      name="location"
+                      defaultValue={modal.classItem.location || ""}
+                      className="input-dark h-12 rounded-xl px-4 text-sm"
+                    >
+                      <option value="">Select location...</option>
+                      {villages.map((v) => (
+                        <option key={v.id} value={v.name}>
+                          {v.name}
+                        </option>
+                      ))}
+                    </select>
                   </label>
                   <div className="mt-4 flex justify-end gap-3">
                     <button
@@ -1230,7 +1247,7 @@ export default function AdminPage() {
                     Retirement Village
                     <select name="retirementVillage" className="input-dark h-10 rounded-xl px-4 text-sm">
                       <option value="">Select village...</option>
-                      {locations.map((loc) => <option key={loc} value={loc}>{loc}</option>)}
+                      {villages.map((v) => <option key={v.id} value={v.name}>{v.name}</option>)}
                     </select>
                   </label>
                   <label className="grid gap-2 text-sm font-medium text-slate-300">
@@ -1292,7 +1309,7 @@ export default function AdminPage() {
                     Retirement Village
                     <select name="retirementVillage" defaultValue={modal.customer.retirementVillage || ""} className="input-dark h-10 rounded-xl px-4 text-sm">
                       <option value="">Select village...</option>
-                      {locations.map((loc) => <option key={loc} value={loc}>{loc}</option>)}
+                      {villages.map((v) => <option key={v.id} value={v.name}>{v.name}</option>)}
                     </select>
                   </label>
                   <label className="grid gap-2 text-sm font-medium text-slate-300">

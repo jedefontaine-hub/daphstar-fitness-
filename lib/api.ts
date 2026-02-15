@@ -96,6 +96,7 @@ export type AdminClassSummary = {
   startTime: string;
   endTime: string;
   capacity: number;
+  location?: string | null;
   booked: number;
   spotsLeft: number;
   status: "scheduled" | "cancelled";

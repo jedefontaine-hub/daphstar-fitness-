@@ -50,6 +50,7 @@ export async function PUT(request: Request, context: Params) {
   if (body.endTime !== undefined || body.end_time !== undefined)
     updates.endTime = body.endTime ?? body.end_time;
   if (body.capacity !== undefined) updates.capacity = body.capacity;
+  if (body.location !== undefined) updates.location = body.location;
 
   const updated = await updateClass(id, updates);
   if (!updated) {
