@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { fetchClasses, type ClassSummary } from "@/lib/api";
 import { useSession } from "@/lib/session-context";
 import { formatTime, formatDuration, formatDateHeader, getDateKey } from "@/lib/utils/date";
-import { getVillageColor, getInitials, LOCATIONS } from "@/lib/constants";
+import { getVillageColor, getInitials } from "@/lib/constants";
 import { BottomNav } from "@/components/BottomNav";
 import { Footer } from "@/components/Footer";
 import Link from "next/link";
@@ -32,7 +32,7 @@ function groupClassesByDate(classes: ClassSummary[]): Map<string, ClassSummary[]
 }
 
 function getGreeting(): string {
-  const hour = new Date().getHours();
+  const hour = Number(new Date().toLocaleString("en-AU", { hour: "numeric", hour12: false, timeZone: "Australia/Brisbane" }));
   if (hour < 12) return "Good Morning";
   if (hour < 17) return "Good Afternoon";
   return "Good Evening";
@@ -79,9 +79,11 @@ export default function Home() {
     loadData();
   }, []);
 
-  const filteredClasses = selectedLocation === "all" 
-    ? classes 
+  const filteredClasses = selectedLocation === "all"
+    ? classes
     : classes.filter(c => c.location === selectedLocation);
+
+  const uniqueLocations = Array.from(new Set(classes.map(c => c.location).filter(Boolean))) as string[];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-800 via-slate-900 to-teal-900 pb-20">
@@ -135,21 +137,21 @@ export default function Home() {
           >
             All Locations
           </button>
-          {LOCATIONS.slice(0, 4).map((loc) => {
+          {uniqueLocations.map((loc) => {
             const colors = getVillageColor(loc);
             const isSelected = selectedLocation === loc;
             return (
               <button
                 key={loc}
                 onClick={() => setSelectedLocation(loc)}
-                className={`flex-shrink-0 rounded-full w-[160px] h-[56px] flex items-center justify-center text-sm font-medium border transition text-center
+                className={`flex-shrink-0 rounded-full px-5 h-[44px] flex items-center justify-center text-sm font-medium border transition text-center whitespace-nowrap
                   ${isSelected
                     ? `${colors.bg} ${colors.text} ${colors.border}`
                     : `${colors.bg} ${colors.text} ${colors.border} opacity-80`
                   }
                 `}
               >
-                {loc.split(' ')[0]}
+                {loc}
               </button>
             );
           })}
