@@ -861,7 +861,7 @@ export default function AdminPage() {
                 <div className="rounded-xl border border-white/10 bg-white/5 p-4">
                   {/* Add Village Form */}
                   <form onSubmit={handleAddVillage} className="mb-4">
-                    <div className="flex gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2">
                       <input
                         type="text"
                         placeholder="Enter village name..."

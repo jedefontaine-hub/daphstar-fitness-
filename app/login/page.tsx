@@ -13,7 +13,7 @@ type AuthStatus =
 
 export default function LoginPage() {
   const router = useRouter();
-  const { customer, isLoading } = useSession();
+  const { customer, isLoading, refresh } = useSession();
   const [mode, setMode] = useState<AuthMode>("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -79,9 +79,9 @@ export default function LoginPage() {
         return;
       }
 
-      // Success - redirect to home or booking page
+      // Success - refresh session context then redirect
+      await refresh();
       router.push("/");
-      router.refresh();
     } catch {
       setStatus({ state: "error", message: "Unable to connect. Please try again." });
     }
