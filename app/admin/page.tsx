@@ -713,6 +713,11 @@ export default function AdminPage() {
                           <p className="text-sm text-slate-400" suppressHydrationWarning>
                             {formatDateRange(item.startTime, item.endTime)}
                           </p>
+                          {item.location && (
+                            <p className="text-xs text-emerald-400/70">
+                              📍 {item.location}
+                            </p>
+                          )}
                         </div>
                       </div>
                       <div className="flex flex-wrap items-center gap-3">
