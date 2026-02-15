@@ -21,6 +21,11 @@ export default function LoginPage() {
   const [retirementVillage, setRetirementVillage] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [status, setStatus] = useState<AuthStatus>({ state: "idle" });
+  const [villages, setVillages] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    fetch("/api/villages").then(r => r.json()).then(setVillages).catch(() => {});
+  }, []);
 
   // Redirect if already logged in
   useEffect(() => {
@@ -194,12 +199,9 @@ export default function LoginPage() {
                   className="input-dark h-14 rounded-xl px-4 text-base"
                 >
                   <option value="">Select your village (optional)</option>
-                  <option value="Sunrise Village">Sunrise Village</option>
-                  <option value="Oakwood Gardens">Oakwood Gardens</option>
-                  <option value="Meadow Creek">Meadow Creek</option>
-                  <option value="Lakeside Manor">Lakeside Manor</option>
-                  <option value="Hillcrest Retirement">Hillcrest Retirement</option>
-                  <option value="Independent">Independent / Other</option>
+                  {villages.map((v) => (
+                    <option key={v.id} value={v.name}>{v.name}</option>
+                  ))}
                 </select>
               </label>
             )}

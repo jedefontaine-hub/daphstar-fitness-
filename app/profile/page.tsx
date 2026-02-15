@@ -42,6 +42,11 @@ export default function ProfilePage() {
   const [address, setAddress] = useState("");
   const [emergencyContactName, setEmergencyContactName] = useState("");
   const [emergencyContactPhone, setEmergencyContactPhone] = useState("");
+  const [villages, setVillages] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    fetch("/api/villages").then(r => r.json()).then(setVillages).catch(() => {});
+  }, []);
 
   useEffect(() => {
     async function fetchProfile() {
@@ -268,14 +273,18 @@ export default function ProfilePage() {
                 <label htmlFor="retirementVillage" className="block text-sm font-medium text-slate-300 mb-1">
                   Retirement Village *
                 </label>
-                <input
-                  type="text"
+                <select
                   id="retirementVillage"
                   value={retirementVillage}
                   onChange={(e) => setRetirementVillage(e.target.value)}
                   required
                   className="input-dark w-full px-4 py-3 rounded-lg text-lg"
-                />
+                >
+                  <option value="">Select village...</option>
+                  {villages.map((v) => (
+                    <option key={v.id} value={v.name}>{v.name}</option>
+                  ))}
+                </select>
               </div>
 
               <div>
