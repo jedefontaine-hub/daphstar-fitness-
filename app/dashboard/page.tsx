@@ -79,17 +79,11 @@ type LoadStatus =
   | { state: "error"; message: string }
   | { state: "unauthorized" };
 
-const villageColors: Record<string, { bg: string; text: string; border: string }> = {
-  "Sunrise Village": { bg: "bg-amber-500/20", text: "text-amber-400", border: "border-amber-500/30" },
-  "Oakwood Gardens": { bg: "bg-emerald-500/20", text: "text-emerald-400", border: "border-emerald-500/30" },
-  "Meadow Creek": { bg: "bg-sky-500/20", text: "text-sky-400", border: "border-sky-500/30" },
-  "Lakeside Manor": { bg: "bg-violet-500/20", text: "text-violet-400", border: "border-violet-500/30" },
-  "Hillcrest Retirement": { bg: "bg-rose-500/20", text: "text-rose-400", border: "border-rose-500/30" },
-};
+const DEFAULT_VILLAGE_STYLE = { bg: "bg-teal-500/20", text: "text-teal-400", border: "border-teal-500/30" };
 
 function getVillageColor(village?: string) {
-  if (!village) return { bg: "bg-slate-500/20", text: "text-slate-400", border: "border-slate-500/30" };
-  return villageColors[village] || { bg: "bg-slate-500/20", text: "text-slate-400", border: "border-slate-500/30" };
+  if (!village) return DEFAULT_VILLAGE_STYLE;
+  return DEFAULT_VILLAGE_STYLE;
 }
 
 function formatDateTime(iso: string): string {
@@ -272,61 +266,61 @@ export default function DashboardPage() {
         </div>
 
         {/* Stats grid */}
-        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="glass-card rounded-2xl p-5">
-            <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-teal-500/20">
-                <svg className="h-7 w-7 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="mb-8 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className="glass-card rounded-2xl p-4">
+            <div className="flex flex-col items-center gap-2 text-center sm:flex-row sm:gap-4 sm:text-left">
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-teal-500/20">
+                <svg className="h-6 w-6 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
               <div>
-                <p className="text-3xl font-bold text-white">{stats.totalAttended}</p>
-                <p className="text-base text-slate-400">Classes Attended</p>
+                <p className="text-2xl font-bold text-white">{stats.totalAttended}</p>
+                <p className="text-sm text-slate-400">Classes Attended</p>
               </div>
             </div>
           </div>
 
-          <div className="glass-card rounded-2xl p-5">
-            <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-emerald-500/20">
-                <svg className="h-7 w-7 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="glass-card rounded-2xl p-4">
+            <div className="flex flex-col items-center gap-2 text-center sm:flex-row sm:gap-4 sm:text-left">
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-500/20">
+                <svg className="h-6 w-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
               <div>
-                <p className="text-3xl font-bold text-white">{stats.totalUpcoming}</p>
-                <p className="text-base text-slate-400">Upcoming</p>
+                <p className="text-2xl font-bold text-white">{stats.totalUpcoming}</p>
+                <p className="text-sm text-slate-400">Upcoming</p>
               </div>
             </div>
           </div>
 
-          <div className="glass-card rounded-2xl p-5">
-            <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-amber-500/20">
-                <svg className="h-7 w-7 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="glass-card rounded-2xl p-4">
+            <div className="flex flex-col items-center gap-2 text-center sm:flex-row sm:gap-4 sm:text-left">
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-amber-500/20">
+                <svg className="h-6 w-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
                 </svg>
               </div>
               <div>
-                <p className="text-3xl font-bold text-white">{stats.streak}</p>
-                <p className="text-base text-slate-400">Week Streak 🔥</p>
+                <p className="text-2xl font-bold text-white">{stats.streak}</p>
+                <p className="text-sm text-slate-400">Week Streak</p>
               </div>
             </div>
           </div>
 
-          <div className="glass-card rounded-2xl p-5">
-            <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-rose-500/20">
-                <svg className="h-7 w-7 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="glass-card rounded-2xl p-4">
+            <div className="flex flex-col items-center gap-2 text-center sm:flex-row sm:gap-4 sm:text-left">
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-rose-500/20">
+                <svg className="h-6 w-6 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
                 </svg>
               </div>
               <div>
-                <p className="text-3xl font-bold text-white">
+                <p className="text-2xl font-bold text-white">
                   {stats.rank ? `#${stats.rank}` : "—"}
                 </p>
-                <p className="text-base text-slate-400">Leaderboard</p>
+                <p className="text-sm text-slate-400">Leaderboard</p>
               </div>
             </div>
           </div>
