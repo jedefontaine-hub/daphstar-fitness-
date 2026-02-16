@@ -1,12 +1,11 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { createBooking, fetchClasses, type ClassSummary } from "@/lib/api";
 import { SuccessAnimation } from "@/components/ui/SuccessAnimation";
 import { useToast } from "@/components/ui/Toast";
 import { PageTransition } from "@/components/ui/PageTransition";
-import { SkeletonProfileForm } from "@/components/ui/Skeleton";
 import { useSession } from "@/lib/session-context";
 
 type BookingStatus =
@@ -72,8 +71,9 @@ function formatDate(value: Date): string {
 
 function BookingContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const toast = useToast();
-  const { customer } = useSession();
+  const { customer, isLoading: sessionLoading } = useSession();
   const preferredClassId = searchParams.get("classId");
   const fallbackTitle = searchParams.get("title");
   const fallbackStart = searchParams.get("startTime");
@@ -81,12 +81,8 @@ function BookingContent() {
   const fallbackSpots = searchParams.get("spotsLeft");
   const [classes, setClasses] = useState<ClassSummary[]>([]);
   const [classId, setClassId] = useState("");
-  const [customerName, setCustomerName] = useState("");
-  const [customerEmail, setCustomerEmail] = useState("");
-  const [retirementVillage, setRetirementVillage] = useState("");
   const [status, setStatus] = useState<BookingStatus>({ state: "idle" });
   const [hasLoaded, setHasLoaded] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
   const [attendees, setAttendees] = useState<Attendee[]>([]);
   const selectedClass = classes.find((item) => item.id === classId);
@@ -108,15 +104,13 @@ function BookingContent() {
         }
       : null;
 
-  // Pre-fill form from session context (no extra fetch needed)
+  // Redirect to login if not authenticated
   useEffect(() => {
-    if (customer) {
-      setCustomerName(customer.name);
-      setCustomerEmail(customer.email);
-      setRetirementVillage(customer.retirementVillage || "");
-      setIsLoggedIn(true);
+    if (!sessionLoading && !customer) {
+      const returnUrl = window.location.pathname + window.location.search;
+      router.replace(`/login?redirect=${encodeURIComponent(returnUrl)}`);
     }
-  }, [customer]);
+  }, [sessionLoading, customer, router]);
 
   useEffect(() => {
     const now = new Date();
@@ -182,8 +176,8 @@ function BookingContent() {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!classId || !customerName || !customerEmail) {
-      toast.error("Please complete all fields before booking.");
+    if (!classId || !customer) {
+      toast.error("Please log in before booking.");
       return;
     }
 
@@ -191,9 +185,9 @@ function BookingContent() {
     try {
       const result = await createBooking({
         classId,
-        customerName,
-        customerEmail,
-        retirementVillage: retirementVillage || undefined,
+        customerName: customer.name,
+        customerEmail: customer.email,
+        retirementVillage: customer.retirementVillage || undefined,
       });
       setShowSuccessAnimation(true);
       setStatus({ state: "success", cancelToken: result.cancelToken });
@@ -206,6 +200,21 @@ function BookingContent() {
       setStatus({ state: "error", message });
     }
   };
+
+  // Show loading while session is being checked or redirecting
+  if (sessionLoading || !customer) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-teal-900 px-4 py-6">
+        <div className="mx-auto max-w-md">
+          <div className="rounded-xl glass-card p-6">
+            <div className="flex items-center justify-center py-8">
+              <div className="h-8 w-8 animate-spin rounded-full border-3 border-teal-500 border-t-transparent" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-teal-900 px-4 py-6">
@@ -245,9 +254,11 @@ function BookingContent() {
         <div className="rounded-xl glass-card p-6">
           <div className="mb-5">
             <h1 className="text-xl font-bold text-white">Book a Class</h1>
-            <p className="mt-2 text-sm text-slate-400">
-              Enter your details to reserve a spot.
-            </p>
+            {customer && (
+              <p className="mt-2 text-sm text-slate-400">
+                Booking as <span className="text-teal-400 font-medium">{customer.name}</span>
+              </p>
+            )}
           </div>
 
           {selectedClass ? (
@@ -314,41 +325,7 @@ function BookingContent() {
             </div>
           ) : null}
 
-          {isLoggedIn ? (
-            <div className="mb-4 rounded-lg bg-emerald-500/20 border border-emerald-500/30 px-4 py-3 text-sm text-emerald-300">
-              <p className="font-semibold">✓ Logged in as {customerName}</p>
-              <p className="text-emerald-400 mt-1">Your details have been pre-filled.</p>
-            </div>
-          ) : (
-            <div className="mb-4 rounded-lg bg-teal-500/20 border border-teal-500/30 px-4 py-3 text-sm text-teal-300">
-              <a href="/login" className="font-semibold hover:text-teal-200">
-                Sign in to book faster →
-              </a>
-            </div>
-          )}
-
           <form className="grid gap-4" onSubmit={handleSubmit}>
-            <label className="grid gap-1.5 text-sm font-medium text-slate-300">
-              Full name
-              <input
-                className="input-dark h-12 rounded-lg px-3 text-sm"
-                placeholder="Margaret Wilson"
-                type="text"
-                value={customerName}
-                onChange={(event) => setCustomerName(event.target.value)}
-              />
-            </label>
-            <label className="grid gap-1.5 text-sm font-medium text-slate-300">
-              Email
-              <input
-                className="input-dark h-12 rounded-lg px-3 text-sm"
-                placeholder="margaret@example.com"
-                type="email"
-                value={customerEmail}
-                onChange={(event) => setCustomerEmail(event.target.value)}
-              />
-            </label>
-
             {status.state === "error" && (
               <div className="rounded-lg bg-red-500/20 border border-red-500/30 px-4 py-3 text-sm text-red-300">
                 {status.message}

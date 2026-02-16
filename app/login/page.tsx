@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "@/lib/session-context";
 
 type AuthMode = "login" | "register";
@@ -11,8 +11,10 @@ type AuthStatus =
   | { state: "loading" }
   | { state: "error"; message: string };
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect") || "/dashboard";
   const { customer, isLoading, refresh } = useSession();
   const [mode, setMode] = useState<AuthMode>("login");
   const [name, setName] = useState("");
@@ -30,7 +32,7 @@ export default function LoginPage() {
   // Redirect if already logged in
   useEffect(() => {
     if (!isLoading && customer) {
-      router.push("/dashboard");
+      router.push(redirectTo);
     }
   }, [customer, isLoading, router]);
 
@@ -86,7 +88,7 @@ export default function LoginPage() {
 
       // Success - refresh session context then redirect
       await refresh();
-      router.push("/");
+      router.push(redirectTo);
     } catch {
       setStatus({ state: "error", message: "Unable to connect. Please try again." });
     }
@@ -273,5 +275,19 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-teal-900 flex items-center justify-center">
+          <div className="h-12 w-12 animate-spin rounded-full border-3 border-teal-500 border-t-transparent" />
+        </div>
+      }
+    >
+      <LoginContent />
+    </Suspense>
   );
 }
