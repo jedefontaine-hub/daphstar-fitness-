@@ -399,7 +399,7 @@ export default function AdminPage() {
     });
   };
 
-  const selectableClasses = classes.filter((c) => c.status !== "cancelled");
+  const selectableClasses = classes.filter((c) => c.status !== "cancelled" && new Date(c.endTime) >= new Date());
   const allSelected = selectableClasses.length > 0 && selectableClasses.every((c) => selectedClassIds.has(c.id));
 
   const toggleSelectAll = () => {
@@ -741,18 +741,20 @@ export default function AdminPage() {
               <div className="mt-6 grid gap-4">
                 {classes.map((item) => {
                   const isCancelled = item.status === "cancelled";
+                  const isExpired = !isCancelled && new Date(item.endTime) < new Date();
+                  const isInactive = isCancelled || isExpired;
                   const fillPercent = Math.round((item.booked / item.capacity) * 100);
                   return (
                     <div
                       key={item.id}
                       className={`group flex flex-col gap-4 rounded-2xl border p-5 transition sm:flex-row sm:items-center sm:justify-between ${
-                        isCancelled
+                        isInactive
                           ? "border-white/5 bg-white/[0.01] opacity-50"
                           : "border-white/5 bg-white/[0.02] hover:border-purple-500/30 hover:bg-white/[0.04]"
                       }`}
                     >
                       <div className="flex items-center gap-4">
-                        {!isCancelled && (
+                        {!isInactive && (
                           <input
                             type="checkbox"
                             checked={selectedClassIds.has(item.id)}
@@ -761,11 +763,11 @@ export default function AdminPage() {
                           />
                         )}
                         <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${
-                          isCancelled
+                          isInactive
                             ? "bg-slate-500/20"
                             : "bg-gradient-to-br from-purple-500/20 to-fuchsia-500/20"
                         }`}>
-                          <svg className={`h-6 w-6 ${isCancelled ? 'text-slate-400' : 'text-purple-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className={`h-6 w-6 ${isInactive ? 'text-slate-400' : 'text-purple-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                           </svg>
                         </div>
@@ -775,6 +777,10 @@ export default function AdminPage() {
                             {isCancelled ? (
                               <span className="ml-2 rounded bg-rose-500/20 px-2 py-0.5 text-xs font-normal text-rose-400">
                                 Cancelled
+                              </span>
+                            ) : isExpired ? (
+                              <span className="ml-2 rounded bg-slate-500/20 px-2 py-0.5 text-xs font-normal text-slate-400">
+                                Expired
                               </span>
                             ) : null}
                           </h3>
@@ -813,7 +819,7 @@ export default function AdminPage() {
                         >
                           Attendees
                         </button>
-                        {!isCancelled ? (
+                        {!isInactive ? (
                           <>
                             <button
                               className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-slate-300 transition hover:border-purple-500/50 hover:text-white"
