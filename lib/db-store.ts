@@ -17,6 +17,7 @@ export type ClassItem = {
   capacity: number;
   location?: string;
   status: "scheduled" | "cancelled";
+  recurringGroupId?: string;
 };
 
 export type BookingItem = {
@@ -57,6 +58,7 @@ function toClassItem(c: Class): ClassItem {
     capacity: c.capacity,
     location: c.location ?? undefined,
     status: c.status as "scheduled" | "cancelled",
+    recurringGroupId: c.recurringGroupId ?? undefined,
   };
 }
 
@@ -205,13 +207,14 @@ export async function createRecurringClasses(input: RecurringClassInput): Promis
   const startDate = new Date(input.startTime);
   const endDate = new Date(input.endTime);
   const durationMs = endDate.getTime() - startDate.getTime();
-  
+  const recurringGroupId = crypto.randomUUID();
+
   const createdClasses: ClassItem[] = [];
-  
+
   for (let week = 0; week < input.repeatWeeks; week++) {
     const weekStartTime = new Date(startDate.getTime() + week * 7 * 24 * 60 * 60 * 1000);
     const weekEndTime = new Date(weekStartTime.getTime() + durationMs);
-    
+
     const newClass = await prisma.class.create({
       data: {
         title: input.title,
@@ -220,11 +223,12 @@ export async function createRecurringClasses(input: RecurringClassInput): Promis
         capacity: input.capacity,
         location: input.location,
         status: "scheduled",
+        recurringGroupId,
       },
     });
     createdClasses.push(toClassItem(newClass));
   }
-  
+
   return createdClasses;
 }
 
@@ -266,6 +270,88 @@ export async function cancelClass(id: string): Promise<ClassItem | null> {
   });
   
   return toClassItem(updated);
+}
+
+export async function updateRecurringClasses(
+  recurringGroupId: string,
+  referenceClassId: string,
+  updates: Partial<ClassInput>
+): Promise<number> {
+  const referenceClass = await prisma.class.findUnique({ where: { id: referenceClassId } });
+  if (!referenceClass) return 0;
+
+  // Find all future scheduled classes in the group (from the reference class onwards)
+  const siblings = await prisma.class.findMany({
+    where: {
+      recurringGroupId,
+      status: "scheduled",
+      startTime: { gte: referenceClass.startTime },
+    },
+  });
+
+  let count = 0;
+  for (const sibling of siblings) {
+    const data: Record<string, unknown> = {};
+    if (updates.title !== undefined) data.title = updates.title;
+    if (updates.capacity !== undefined) data.capacity = updates.capacity;
+    if (updates.location !== undefined) data.location = updates.location;
+
+    // For time updates, preserve the date but update the time-of-day
+    if (updates.startTime !== undefined) {
+      const newTime = new Date(updates.startTime);
+      const existing = new Date(sibling.startTime);
+      existing.setUTCHours(newTime.getUTCHours(), newTime.getUTCMinutes(), newTime.getUTCSeconds());
+      data.startTime = existing;
+    }
+    if (updates.endTime !== undefined) {
+      const newTime = new Date(updates.endTime);
+      const existing = new Date(sibling.endTime);
+      existing.setUTCHours(newTime.getUTCHours(), newTime.getUTCMinutes(), newTime.getUTCSeconds());
+      data.endTime = existing;
+    }
+
+    if (Object.keys(data).length > 0) {
+      await prisma.class.update({ where: { id: sibling.id }, data });
+      count++;
+    }
+  }
+
+  return count;
+}
+
+export async function cancelRecurringClasses(
+  recurringGroupId: string,
+  referenceClassId: string
+): Promise<number> {
+  const referenceClass = await prisma.class.findUnique({ where: { id: referenceClassId } });
+  if (!referenceClass) return 0;
+
+  // Find all future scheduled classes in the group
+  const siblings = await prisma.class.findMany({
+    where: {
+      recurringGroupId,
+      status: "scheduled",
+      startTime: { gte: referenceClass.startTime },
+    },
+    select: { id: true },
+  });
+
+  const ids = siblings.map((s) => s.id);
+  if (ids.length === 0) return 0;
+
+  // Cancel all the classes
+  await prisma.class.updateMany({
+    where: { id: { in: ids } },
+    data: { status: "cancelled" },
+  });
+
+  // Cancel all active bookings for these classes
+  await prisma.booking.updateMany({
+    where: { classId: { in: ids }, status: "active" },
+    data: { status: "cancelled", cancelledAt: new Date() },
+  });
+
+  return ids.length;
 }
 
 export async function listAttendees(

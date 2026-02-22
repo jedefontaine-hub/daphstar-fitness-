@@ -11,16 +11,19 @@ datasource db {
 }
 
 model Class {
-  id        String    @id @default(cuid())
-  title     String
-  startTime DateTime
-  endTime   DateTime
-  capacity  Int
-  location  String?
-  status    String    @default("scheduled")
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  bookings  Booking[]
+  id               String    @id @default(cuid())
+  title            String
+  startTime        DateTime
+  endTime          DateTime
+  capacity         Int
+  location         String?
+  status           String    @default("scheduled")
+  recurringGroupId String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  bookings         Booking[]
+
+  @@index([recurringGroupId])
 }
 
 model Booking {

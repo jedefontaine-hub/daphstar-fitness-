@@ -28,6 +28,7 @@ export async function GET(request: Request) {
         endTime: item.endTime,
         capacity: item.capacity,
         location: item.location,
+        recurringGroupId: item.recurringGroupId,
         booked,
         spotsLeft: Math.max(item.capacity - booked, 0),
         status: item.status,

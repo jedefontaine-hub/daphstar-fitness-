@@ -109,6 +109,7 @@ export default function AdminPage() {
   const [classes, setClasses] = useState<AdminClassSummary[]>([]);
   const [classesStatus, setClassesStatus] = useState<PageStatus>({ state: "loading" });
   const [isRecurring, setIsRecurring] = useState(false);
+  const [applyToSeries, setApplyToSeries] = useState(false);
   const [expiredPasses, setExpiredPasses] = useState<CustomerWithPass[]>([]);
   const [lowPasses, setLowPasses] = useState<CustomerWithPass[]>([]);
   const [showExpiredPasses, setShowExpiredPasses] = useState(true);
@@ -301,6 +302,7 @@ export default function AdminPage() {
   const handleCloseModal = () => {
     setModal({ type: "none" });
     setIsRecurring(false);
+    setApplyToSeries(false);
   };
 
   const handleCreateSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -356,22 +358,22 @@ export default function AdminPage() {
         endTime: new Date(endTime).toISOString(),
         capacity,
         location,
-      });
+      }, { applyToSeries });
       handleCloseModal();
       loadClasses();
-      toast.success("Class updated successfully");
+      toast.success(applyToSeries ? "All future classes in series updated" : "Class updated successfully");
     } catch {
       alert("Failed to update class.");
     }
   };
 
-  const handleCancelClass = async () => {
+  const handleCancelClass = async (cancelSeries = false) => {
     if (modal.type !== "cancelConfirm") return;
     try {
-      await adminCancelClass(modal.classItem.id);
+      await adminCancelClass(modal.classItem.id, { applyToSeries: cancelSeries });
       handleCloseModal();
       loadClasses();
-      toast.success("Class cancelled");
+      toast.success(cancelSeries ? "All future classes in series cancelled" : "Class cancelled");
     } catch {
       alert("Failed to cancel class.");
     }
@@ -1187,6 +1189,19 @@ export default function AdminPage() {
                       ))}
                     </select>
                   </label>
+                  {modal.classItem.recurringGroupId && (
+                    <div className="rounded-xl border border-purple-500/30 bg-purple-500/10 p-4">
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={applyToSeries}
+                          onChange={(e) => setApplyToSeries(e.target.checked)}
+                          className="h-5 w-5 rounded border-white/20 bg-white/10 text-purple-500 focus:ring-purple-500"
+                        />
+                        <span className="text-sm font-medium text-slate-300">Apply changes to all future classes in this series</span>
+                      </label>
+                    </div>
+                  )}
                   <div className="mt-4 flex justify-end gap-3">
                     <button
                       type="button"
@@ -1286,21 +1301,32 @@ export default function AdminPage() {
                   This will cancel <strong className="text-white">{modal.classItem.title}</strong> and
                   notify all attendees. This action cannot be undone.
                 </p>
-                <div className="mt-6 flex justify-end gap-3">
-                  <button
-                    type="button"
-                    className="rounded-full border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-semibold text-slate-300 transition hover:bg-white/10"
-                    onClick={handleCloseModal}
-                  >
-                    Keep class
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded-full bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-rose-500/30 transition hover:bg-rose-600"
-                    onClick={handleCancelClass}
-                  >
-                    Cancel class
-                  </button>
+                <div className="mt-6 flex flex-col gap-3">
+                  {modal.classItem.recurringGroupId && (
+                    <button
+                      type="button"
+                      className="w-full rounded-full bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-rose-500/30 transition hover:bg-rose-600"
+                      onClick={() => handleCancelClass(true)}
+                    >
+                      Cancel all future in series
+                    </button>
+                  )}
+                  <div className="flex justify-end gap-3">
+                    <button
+                      type="button"
+                      className="rounded-full border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-semibold text-slate-300 transition hover:bg-white/10"
+                      onClick={handleCloseModal}
+                    >
+                      Keep class
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-full bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-rose-500/30 transition hover:bg-rose-600"
+                      onClick={() => handleCancelClass(false)}
+                    >
+                      Cancel this class only
+                    </button>
+                  </div>
                 </div>
               </>
             ) : null}

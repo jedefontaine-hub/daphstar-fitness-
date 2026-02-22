@@ -2,10 +2,12 @@ import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/auth";
 import {
   cancelClass,
+  cancelRecurringClasses,
   countActiveBookings,
   getClassById,
   listAttendees,
   updateClass,
+  updateRecurringClasses,
 } from "@/lib/db-store";
 
 type Params = { params: Promise<{ id: string }> };
@@ -52,6 +54,16 @@ export async function PUT(request: Request, context: Params) {
   if (body.capacity !== undefined) updates.capacity = body.capacity;
   if (body.location !== undefined) updates.location = body.location;
 
+  // Apply to entire recurring series if requested
+  if (body.applyToSeries === true) {
+    const classItem = await getClassById(id);
+    if (!classItem?.recurringGroupId) {
+      return NextResponse.json({ error: "not_recurring" }, { status: 400 });
+    }
+    const count = await updateRecurringClasses(classItem.recurringGroupId, id, updates);
+    return NextResponse.json({ updated: count });
+  }
+
   const updated = await updateClass(id, updates);
   if (!updated) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
@@ -59,12 +71,24 @@ export async function PUT(request: Request, context: Params) {
   return NextResponse.json({ id: updated.id, status: updated.status });
 }
 
-export async function DELETE(_request: Request, context: Params) {
+export async function DELETE(request: Request, context: Params) {
   if (!(await isAdminAuthenticated())) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
   const { id } = await context.params;
+  const url = new URL(request.url);
+  const applyToSeries = url.searchParams.get("applyToSeries") === "true";
+
+  if (applyToSeries) {
+    const classItem = await getClassById(id);
+    if (!classItem?.recurringGroupId) {
+      return NextResponse.json({ error: "not_recurring" }, { status: 400 });
+    }
+    const count = await cancelRecurringClasses(classItem.recurringGroupId, id);
+    return NextResponse.json({ cancelled: count });
+  }
+
   const cancelled = await cancelClass(id);
   if (!cancelled) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });

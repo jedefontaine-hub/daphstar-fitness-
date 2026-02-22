@@ -97,6 +97,7 @@ export type AdminClassSummary = {
   endTime: string;
   capacity: number;
   location?: string | null;
+  recurringGroupId?: string | null;
   booked: number;
   spotsLeft: number;
   status: "scheduled" | "cancelled";
@@ -152,12 +153,13 @@ export async function adminCreateClass(
 
 export async function adminUpdateClass(
   id: string,
-  updates: Partial<ClassCreateRequest>
+  updates: Partial<ClassCreateRequest>,
+  options?: { applyToSeries?: boolean }
 ): Promise<{ id: string; status: string }> {
   const response = await fetch(`/api/admin/classes/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(updates),
+    body: JSON.stringify({ ...updates, applyToSeries: options?.applyToSeries }),
   });
   if (!response.ok) {
     throw new Error("Failed to update class.");
@@ -166,9 +168,13 @@ export async function adminUpdateClass(
 }
 
 export async function adminCancelClass(
-  id: string
+  id: string,
+  options?: { applyToSeries?: boolean }
 ): Promise<{ id: string; status: string }> {
-  const response = await fetch(`/api/admin/classes/${id}`, {
+  const url = options?.applyToSeries
+    ? `/api/admin/classes/${id}?applyToSeries=true`
+    : `/api/admin/classes/${id}`;
+  const response = await fetch(url, {
     method: "DELETE",
   });
   if (!response.ok) {
