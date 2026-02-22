@@ -240,6 +240,8 @@ export default function CalendarPage() {
                         ) : (
                           dayClasses.map((c) => {
                             const isFull = c.spotsLeft === 0;
+                            const isExpired = new Date(c.endTime) < new Date();
+                            const isUnavailable = isFull || isExpired;
                             const query = new URLSearchParams({
                               classId: c.id,
                               title: c.title,
@@ -248,13 +250,13 @@ export default function CalendarPage() {
                               spotsLeft: String(c.spotsLeft),
                             }).toString();
                             const colors = getCalendarVillageColor(c.location);
-                            
+
                             return (
                               <a
                                 key={c.id}
-                                href={isFull ? "#" : `/booking?${query}`}
-                                className={`flex items-center gap-3 px-4 py-3 ${isFull ? 'opacity-50' : 'hover:bg-white/10'}`}
-                                onClick={(e) => isFull && e.preventDefault()}
+                                href={isUnavailable ? "#" : `/booking?${query}`}
+                                className={`flex items-center gap-3 px-4 py-3 ${isUnavailable ? 'opacity-50' : 'hover:bg-white/10'}`}
+                                onClick={(e) => isUnavailable && e.preventDefault()}
                               >
                                 {/* Time */}
                                 <div className="text-center w-14 flex-shrink-0">
@@ -275,9 +277,9 @@ export default function CalendarPage() {
                                 
                                 {/* Spots */}
                                 <div className={`text-xs font-medium px-2 py-1 rounded-full flex-shrink-0 ${
-                                  isFull ? 'bg-slate-600/50 text-slate-400' : 'bg-emerald-500/30 text-emerald-400'
+                                  isExpired ? 'bg-slate-600/50 text-slate-400' : isFull ? 'bg-slate-600/50 text-slate-400' : 'bg-emerald-500/30 text-emerald-400'
                                 }`}>
-                                  {isFull ? 'Full' : `${c.spotsLeft} left`}
+                                  {isExpired ? 'Expired' : isFull ? 'Full' : `${c.spotsLeft} left`}
                                 </div>
                               </a>
                             );
@@ -329,6 +331,8 @@ export default function CalendarPage() {
                           <div className="space-y-1.5">
                             {dayClasses.map((c) => {
                               const isFull = c.spotsLeft === 0;
+                              const isExpired = new Date(c.endTime) < new Date();
+                              const isUnavailable = isFull || isExpired;
                               const query = new URLSearchParams({
                                 classId: c.id,
                                 title: c.title,
@@ -340,20 +344,20 @@ export default function CalendarPage() {
                               return (
                                 <a
                                   key={c.id}
-                                  href={isFull ? "#" : `/booking?${query}`}
+                                  href={isUnavailable ? "#" : `/booking?${query}`}
                                   className={`block rounded-lg p-2 text-xs transition ${
-                                    isFull
-                                      ? "cursor-not-allowed bg-slate-700/50 text-slate-400"
+                                    isUnavailable
+                                      ? "cursor-not-allowed bg-slate-700/50 text-slate-400 opacity-50"
                                       : `${colors.bg} ${colors.text} ${colors.hover}`
                                   }`}
-                                  onClick={(e) => isFull && e.preventDefault()}
+                                  onClick={(e) => isUnavailable && e.preventDefault()}
                                 >
                                   <p className="font-semibold" suppressHydrationWarning>
                                     {formatTime(c.startTime)}
                                   </p>
                                   <p className="truncate">{c.title}</p>
-                                  <p className={`mt-0.5 font-medium ${isFull ? "text-rose-400" : "text-emerald-400"}`}>
-                                    {isFull ? "Full" : `${c.spotsLeft} spots`}
+                                  <p className={`mt-0.5 font-medium ${isExpired ? "text-slate-500" : isFull ? "text-rose-400" : "text-emerald-400"}`}>
+                                    {isExpired ? "Expired" : isFull ? "Full" : `${c.spotsLeft} spots`}
                                   </p>
                                 </a>
                               );
@@ -393,11 +397,12 @@ export default function CalendarPage() {
                               {dayClasses.slice(0, 4).map((c) => {
                                 const colors = getCalendarVillageColor(c.location);
                                 const isFull = c.spotsLeft === 0;
+                                const isExpired = new Date(c.endTime) < new Date();
                                 return (
                                   <div
                                     key={c.id}
-                                    className={`h-2 w-2 rounded-full ${isFull ? 'bg-slate-300' : colors.dot}`}
-                                    title={`${formatTime(c.startTime)} - ${c.title}`}
+                                    className={`h-2 w-2 rounded-full ${(isFull || isExpired) ? 'bg-slate-500' : colors.dot}`}
+                                    title={`${formatTime(c.startTime)} - ${c.title}${isExpired ? ' (Expired)' : ''}`}
                                   />
                                 );
                               })}
@@ -410,6 +415,8 @@ export default function CalendarPage() {
                             <div className="hidden sm:block space-y-0.5">
                               {dayClasses.slice(0, 2).map((c) => {
                                 const isFull = c.spotsLeft === 0;
+                                const isExpired = new Date(c.endTime) < new Date();
+                                const isUnavailable = isFull || isExpired;
                                 const query = new URLSearchParams({
                                   classId: c.id,
                                   title: c.title,
@@ -421,13 +428,13 @@ export default function CalendarPage() {
                                 return (
                                   <a
                                     key={c.id}
-                                    href={isFull ? "#" : `/booking?${query}`}
+                                    href={isUnavailable ? "#" : `/booking?${query}`}
                                     className={`block truncate rounded px-1.5 py-0.5 text-[11px] transition ${
-                                      isFull
-                                        ? "cursor-not-allowed bg-slate-700/50 text-slate-400"
+                                      isUnavailable
+                                        ? "cursor-not-allowed bg-slate-700/50 text-slate-400 opacity-50"
                                         : `${colors.bg} ${colors.text} ${colors.hover}`
                                     }`}
-                                    onClick={(e) => isFull && e.preventDefault()}
+                                    onClick={(e) => isUnavailable && e.preventDefault()}
                                   >
                                     {c.title}
                                   </a>
