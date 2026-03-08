@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { isAdminAuthenticated } from "@/lib/auth";
+import { getAdminFromRequest } from "@/lib/auth";
 
 // GET - List all villages
-export async function GET() {
-  if (!(await isAdminAuthenticated())) {
+export async function GET(request: Request) {
+  const admin = getAdminFromRequest(request);
+  if (!admin) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
@@ -24,7 +25,8 @@ export async function GET() {
 
 // POST - Create new village
 export async function POST(request: Request) {
-  if (!(await isAdminAuthenticated())) {
+  const admin = getAdminFromRequest(request);
+  if (!admin) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

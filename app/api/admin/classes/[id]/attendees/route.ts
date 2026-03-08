@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
-import { isAdminAuthenticated } from "@/lib/auth";
+import { getAdminFromRequest } from "@/lib/auth";
 import { listAttendees } from "@/lib/db-store";
 
 type Params = { params: Promise<{ id: string }> };
 
-export async function GET(_request: Request, context: Params) {
-  if (!(await isAdminAuthenticated())) {
+export async function GET(request: Request, context: Params) {
+  const admin = getAdminFromRequest(request);
+  if (!admin) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isAdminAuthenticated } from "@/lib/auth";
+import { getAdminFromRequest } from "@/lib/auth";
 import {
   countActiveBookings,
   createClass,
@@ -9,7 +9,8 @@ import {
 } from "@/lib/db-store";
 
 export async function GET(request: Request) {
-  if (!(await isAdminAuthenticated())) {
+  const admin = getAdminFromRequest(request);
+  if (!admin) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
@@ -40,7 +41,8 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  if (!(await isAdminAuthenticated())) {
+  const admin = getAdminFromRequest(request);
+  if (!admin) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

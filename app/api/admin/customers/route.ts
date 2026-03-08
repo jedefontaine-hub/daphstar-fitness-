@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { isAdminAuthenticated } from "@/lib/auth";
+import { getAdminFromRequest, hashPassword } from "@/lib/auth";
 
 // GET - List all customers
-export async function GET() {
-  if (!(await isAdminAuthenticated())) {
+export async function GET(request: Request) {
+  const admin = getAdminFromRequest(request);
+  if (!admin) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
@@ -31,7 +32,8 @@ export async function GET() {
 
 // POST - Create new customer
 export async function POST(request: Request) {
-  if (!(await isAdminAuthenticated())) {
+  const admin = getAdminFromRequest(request);
+  if (!admin) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
@@ -67,7 +69,7 @@ export async function POST(request: Request) {
       data: {
         name,
         email,
-        password: password || "changeme",
+        password: await hashPassword(password || "changeme"),
         retirementVillage,
         birthdate: birthdate ? new Date(birthdate) : null,
         phone,

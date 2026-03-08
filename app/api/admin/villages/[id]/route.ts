@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { isAdminAuthenticated } from "@/lib/auth";
+import { getAdminFromRequest } from "@/lib/auth";
 
 // DELETE - Delete village
 export async function DELETE(
@@ -9,7 +9,8 @@ export async function DELETE(
 ) {
   const { id } = await context.params;
 
-  if (!(await isAdminAuthenticated())) {
+  const admin = getAdminFromRequest(request);
+  if (!admin) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
@@ -32,7 +33,8 @@ export async function PATCH(
 ) {
   const { id } = await context.params;
 
-  if (!(await isAdminAuthenticated())) {
+  const admin = getAdminFromRequest(request);
+  if (!admin) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

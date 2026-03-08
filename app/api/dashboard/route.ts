@@ -1,28 +1,22 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { getCustomerFromRequest } from "@/lib/auth";
 import { getCustomerDashboard } from "@/lib/db-store";
 
-export async function GET() {
-  const cookieStore = await cookies();
-  const sessionCookie = cookieStore.get("customer_session");
+export async function GET(request: Request) {
+  const tokenPayload = getCustomerFromRequest(request);
 
-  if (!sessionCookie?.value) {
+  if (!tokenPayload) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
   try {
-    const session = JSON.parse(sessionCookie.value);
-    if (!session.email) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    }
-
-    const dashboard = await getCustomerDashboard(session.email);
+    const dashboard = await getCustomerDashboard(tokenPayload.email);
     return NextResponse.json({
       customer: {
-        id: session.customerId,
-        name: session.name,
-        email: session.email,
-        retirementVillage: session.retirementVillage,
+        id: tokenPayload.sub,
+        name: tokenPayload.name,
+        email: tokenPayload.email,
+        retirementVillage: tokenPayload.retirementVillage,
       },
       ...dashboard,
     });

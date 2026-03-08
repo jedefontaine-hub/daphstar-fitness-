@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isAdminAuthenticated } from "@/lib/auth";
+import { getAdminFromRequest } from "@/lib/auth";
 import {
   cancelClass,
   cancelRecurringClasses,
@@ -13,7 +13,8 @@ import {
 type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_request: Request, context: Params) {
-  if (!(await isAdminAuthenticated())) {
+  const admin = getAdminFromRequest(request);
+  if (!admin) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
@@ -36,7 +37,8 @@ export async function GET(_request: Request, context: Params) {
 }
 
 export async function PUT(request: Request, context: Params) {
-  if (!(await isAdminAuthenticated())) {
+  const admin = getAdminFromRequest(request);
+  if (!admin) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
@@ -72,7 +74,8 @@ export async function PUT(request: Request, context: Params) {
 }
 
 export async function DELETE(request: Request, context: Params) {
-  if (!(await isAdminAuthenticated())) {
+  const admin = getAdminFromRequest(request);
+  if (!admin) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

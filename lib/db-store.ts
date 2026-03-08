@@ -6,6 +6,7 @@
  */
 
 import { prisma } from "./db";
+import { hashPassword, verifyPassword } from "./auth";
 import type { Class, Booking, Customer } from "@prisma/client";
 
 // Re-export types for convenience
@@ -517,11 +518,12 @@ export async function registerCustomer(input: RegisterInput): Promise<RegisterRe
     return { ok: false, error: "email_exists" };
   }
   
+  const hashed = await hashPassword(input.password);
   const customer = await prisma.customer.create({
     data: {
       name: input.name.trim(),
       email: normalizedEmail,
-      password: input.password, // Note: In production, hash this!
+      password: hashed,
       retirementVillage: input.retirementVillage,
     },
   });
@@ -535,18 +537,31 @@ export type LoginResult =
 
 export async function loginCustomer(email: string, password: string): Promise<LoginResult> {
   const normalizedEmail = email.toLowerCase().trim();
-  
-  const customer = await prisma.customer.findFirst({
-    where: {
-      email: normalizedEmail,
-      password,
-    },
+
+  const customer = await prisma.customer.findUnique({
+    where: { email: normalizedEmail },
   });
-  
+
   if (!customer) {
     return { ok: false, error: "invalid_credentials" };
   }
-  
+
+  let valid = await verifyPassword(password, customer.password);
+
+  // Transition fallback: migrate plaintext passwords on first login
+  if (!valid && customer.password === password) {
+    const hashed = await hashPassword(password);
+    await prisma.customer.update({
+      where: { id: customer.id },
+      data: { password: hashed },
+    });
+    valid = true;
+  }
+
+  if (!valid) {
+    return { ok: false, error: "invalid_credentials" };
+  }
+
   return { ok: true, customer: toCustomerPublic(customer) };
 }
 

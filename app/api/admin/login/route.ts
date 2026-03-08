@@ -1,28 +1,20 @@
 import { NextResponse } from "next/server";
 import {
-  checkPassword,
-  createSession,
-  SESSION_COOKIE,
+  verifyAdminPassword,
+  signAdminAccessToken,
+  createRefreshToken,
 } from "@/lib/auth";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const password = body?.password;
 
-  if (!password || !checkPassword(password)) {
+  if (!password || !(await verifyAdminPassword(password))) {
     return NextResponse.json({ error: "invalid_credentials" }, { status: 401 });
   }
 
-  const sessionId = createSession();
+  const accessToken = signAdminAccessToken();
+  const refreshToken = await createRefreshToken({ isAdmin: true });
 
-  const response = NextResponse.json({ success: true });
-  response.cookies.set(SESSION_COOKIE, sessionId, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: 60 * 60 * 24, // 24 hours
-    path: "/",
-  });
-
-  return response;
+  return NextResponse.json({ accessToken, refreshToken, success: true });
 }
