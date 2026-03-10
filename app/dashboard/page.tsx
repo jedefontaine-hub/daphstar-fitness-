@@ -255,7 +255,7 @@ export default function DashboardPage() {
       <header className="relative border-b border-white/10 bg-slate-900/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-5xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-5">
           <div>
-            <a href="/" className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-400 hover:text-teal-300 transition sm:text-sm">
+            <a href="/" className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-200 hover:text-white transition sm:text-sm">
               Daphstar Fitness
             </a>
             <h1 className="mt-1 text-xl font-bold text-white sm:text-2xl">My Dashboard</h1>
@@ -285,7 +285,7 @@ export default function DashboardPage() {
           </h2>
           <div className="mt-2 flex flex-wrap items-center gap-3">
             {customer.retirementVillage && (
-              <span className="inline-flex items-center gap-2 rounded-full border border-teal-500/30 bg-teal-500/10 px-3 py-1 text-sm font-medium text-teal-400">
+              <span className="inline-flex items-center gap-2 rounded-full border border-teal-500/30 bg-teal-500/10 px-3 py-1 text-sm font-medium text-slate-100">
                 <span className="h-2 w-2 rounded-full bg-teal-400" />
                 {customer.retirementVillage}
               </span>
@@ -390,7 +390,7 @@ export default function DashboardPage() {
               <p className="text-slate-400">No upcoming classes booked yet.</p>
               <a
                 href="/"
-                className="mt-3 inline-flex items-center gap-2 rounded-full bg-teal-500/20 px-5 py-2.5 text-sm font-medium text-teal-300 hover:bg-teal-500/30 transition"
+                className="mt-3 inline-flex items-center gap-2 rounded-full bg-teal-500/20 px-5 py-2.5 text-sm font-medium text-slate-100 hover:bg-teal-500/30 transition"
               >
                 Book your first class
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

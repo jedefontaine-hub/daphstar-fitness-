@@ -21,6 +21,9 @@ function LoginContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [retirementVillage, setRetirementVillage] = useState("");
+  const [birthdate, setBirthdate] = useState("");
+  const [emergencyContactName, setEmergencyContactName] = useState("");
+  const [emergencyContactPhone, setEmergencyContactPhone] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [status, setStatus] = useState<AuthStatus>({ state: "idle" });
   const [villages, setVillages] = useState<{ id: string; name: string }[]>([]);
@@ -66,7 +69,15 @@ function LoginContent() {
       const endpoint = mode === "login" ? "/api/auth/login" : "/api/auth/register";
       const body = mode === "login"
         ? { email, password }
-        : { name, email, password, retirementVillage: retirementVillage || undefined };
+        : {
+            name,
+            email,
+            password,
+            retirementVillage,
+            birthdate,
+            emergencyContactName,
+            emergencyContactPhone,
+          };
 
       const res = await fetch(endpoint, {
         method: "POST",
@@ -118,7 +129,7 @@ function LoginContent() {
 
       <div className="relative mx-auto max-w-md">
         <div className="mb-8 text-center">
-          <a href="/" className="text-sm font-semibold uppercase tracking-[0.2em] text-teal-400 hover:text-teal-300 transition">
+          <a href="/" className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-200 hover:text-white transition">
             Daphstar Fitness
           </a>
           <h1 className="mt-4 gradient-text text-3xl font-bold">
@@ -138,7 +149,7 @@ function LoginContent() {
               onClick={() => setMode("login")}
               className={`flex-1 rounded-lg py-3 text-base font-medium transition ${
                 mode === "login"
-                  ? "bg-teal-500 text-white shadow-sm"
+                  ? "bg-white/20 text-white shadow-sm"
                   : "text-slate-400 hover:text-white"
               }`}
             >
@@ -148,7 +159,7 @@ function LoginContent() {
               onClick={() => setMode("register")}
               className={`flex-1 rounded-lg py-3 text-base font-medium transition ${
                 mode === "register"
-                  ? "bg-teal-500 text-white shadow-sm"
+                  ? "bg-white/20 text-white shadow-sm"
                   : "text-slate-400 hover:text-white"
               }`}
             >
@@ -193,19 +204,50 @@ function LoginContent() {
             </label>
 
             {mode === "register" && (
-              <label className="grid gap-2 text-base font-medium text-slate-300">
-                Retirement Village
-                <select
-                  value={retirementVillage}
-                  onChange={(e) => setRetirementVillage(e.target.value)}
-                  className="input-dark h-14 rounded-xl px-4 text-base"
-                >
-                  <option value="">Select your village (optional)</option>
-                  {villages.map((v) => (
-                    <option key={v.id} value={v.name}>{v.name}</option>
-                  ))}
-                </select>
-              </label>
+              <>
+                <label className="grid gap-2 text-base font-medium text-slate-300">
+                  Date of Birth
+                  <input
+                    type="date"
+                    value={birthdate}
+                    onChange={(e) => setBirthdate(e.target.value)}
+                    className="input-dark h-14 rounded-xl px-4 text-base"
+                  />
+                </label>
+                <label className="grid gap-2 text-base font-medium text-slate-300">
+                  Emergency Contact Name
+                  <input
+                    type="text"
+                    value={emergencyContactName}
+                    onChange={(e) => setEmergencyContactName(e.target.value)}
+                    className="input-dark h-14 rounded-xl px-4 text-base"
+                    placeholder="Contact Name"
+                  />
+                </label>
+                <label className="grid gap-2 text-base font-medium text-slate-300">
+                  Emergency Contact Phone
+                  <input
+                    type="tel"
+                    value={emergencyContactPhone}
+                    onChange={(e) => setEmergencyContactPhone(e.target.value)}
+                    className="input-dark h-14 rounded-xl px-4 text-base"
+                    placeholder="Contact Phone"
+                  />
+                </label>
+                <label className="grid gap-2 text-base font-medium text-slate-300">
+                  Retirement Village
+                  <select
+                    value={retirementVillage}
+                    onChange={(e) => setRetirementVillage(e.target.value)}
+                    className="input-dark h-14 rounded-xl px-4 text-base"
+                  >
+                    <option value="">Select your village</option>
+                    <option value="IRT Woodlands">IRT Woodlands</option>
+                    <option value="Alcyon">Alcyon</option>
+                    <option value="Kookaburra Village">Kookaburra Village</option>
+                  </select>
+                </label>
+              </>
             )}
 
             {mode === "register" && (
@@ -221,7 +263,7 @@ function LoginContent() {
                   <a
                     href="/terms"
                     target="_blank"
-                    className="text-teal-400 hover:text-teal-300 underline font-medium"
+                    className="text-slate-200 hover:text-white underline font-medium"
                   >
                     Terms & Conditions
                   </a>
@@ -229,7 +271,7 @@ function LoginContent() {
                   <a
                     href="/privacy"
                     target="_blank"
-                    className="text-teal-400 hover:text-teal-300 underline font-medium"
+                    className="text-slate-200 hover:text-white underline font-medium"
                   >
                     Privacy Policy
                   </a>
@@ -263,13 +305,13 @@ function LoginContent() {
 
           {mode === "login" && (
             <p className="mt-6 text-center text-base text-slate-400">
-              Demo: <code className="text-teal-400 bg-teal-500/20 px-2 py-1 rounded">margaret@example.com</code> / <code className="text-teal-400 bg-teal-500/20 px-2 py-1 rounded">password123</code>
+              Demo: <code className="text-slate-100 bg-white/10 px-2 py-1 rounded">margaret@example.com</code> / <code className="text-slate-100 bg-white/10 px-2 py-1 rounded">password123</code>
             </p>
           )}
         </div>
 
         <p className="mt-6 text-center text-base text-slate-400">
-          <a href="/" className="text-teal-400 hover:text-teal-300 transition font-medium">
+          <a href="/" className="text-slate-200 hover:text-white transition font-medium">
             ← Back to schedule
           </a>
         </p>

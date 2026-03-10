@@ -9,10 +9,10 @@ type ViewMode = "week" | "month";
 
 const CALENDAR_COLORS = [
   { bg: "bg-teal-500/20", text: "text-teal-300", border: "border-teal-500/30", dot: "bg-teal-400", hover: "hover:bg-teal-500/30" },
-  { bg: "bg-emerald-500/20", text: "text-emerald-300", border: "border-emerald-500/30", dot: "bg-emerald-400", hover: "hover:bg-emerald-500/30" },
+  { bg: "bg-amber-500/20", text: "text-amber-300", border: "border-amber-500/30", dot: "bg-amber-400", hover: "hover:bg-amber-500/30" },
   { bg: "bg-purple-500/20", text: "text-purple-300", border: "border-purple-500/30", dot: "bg-purple-400", hover: "hover:bg-purple-500/30" },
   { bg: "bg-sky-500/20", text: "text-sky-300", border: "border-sky-500/30", dot: "bg-sky-400", hover: "hover:bg-sky-500/30" },
-  { bg: "bg-amber-500/20", text: "text-amber-300", border: "border-amber-500/30", dot: "bg-amber-400", hover: "hover:bg-amber-500/30" },
+  { bg: "bg-emerald-500/20", text: "text-emerald-300", border: "border-emerald-500/30", dot: "bg-emerald-400", hover: "hover:bg-emerald-500/30" },
   { bg: "bg-rose-500/20", text: "text-rose-300", border: "border-rose-500/30", dot: "bg-rose-400", hover: "hover:bg-rose-500/30" },
 ];
 
@@ -31,6 +31,7 @@ function getCalendarVillageColor(village?: string) {
 export default function CalendarPage() {
   const [classes, setClasses] = useState<ClassSummary[]>([]);
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>("week");
   const [isLoading, setIsLoading] = useState(true);
   const [selectedLocation, setSelectedLocation] = useState<string>("all");
@@ -63,6 +64,7 @@ export default function CalendarPage() {
     const newDate = new Date(currentDate);
     if (viewMode === "week") {
       newDate.setDate(newDate.getDate() - 7);
+      setSelectedDate(newDate);
     } else {
       newDate.setMonth(newDate.getMonth() - 1);
     }
@@ -73,13 +75,18 @@ export default function CalendarPage() {
     const newDate = new Date(currentDate);
     if (viewMode === "week") {
       newDate.setDate(newDate.getDate() + 7);
+      setSelectedDate(newDate);
     } else {
       newDate.setMonth(newDate.getMonth() + 1);
     }
     setCurrentDate(newDate);
   };
 
-  const goToToday = () => setCurrentDate(new Date());
+  const goToToday = () => {
+    const now = new Date();
+    setCurrentDate(now);
+    setSelectedDate(now);
+  };
 
   const getClassesForDate = (date: Date): ClassSummary[] => {
     return classes.filter((c) => {
@@ -100,12 +107,31 @@ export default function CalendarPage() {
       ? `${weekDates[0]?.toLocaleDateString("default", { month: "short", day: "numeric" })} - ${weekDates[6]?.toLocaleDateString("default", { day: "numeric" })}`
       : monthName;
 
-  // Get week's classes grouped by date for mobile list view
-  const weekClassesByDate = weekDates.map(date => ({
-    date,
-    classes: getClassesForDate(date),
-    isToday: isSameDay(date, today)
-  })).filter(d => d.classes.length > 0 || d.isToday);
+  const selectedDateClasses = getClassesForDate(selectedDate).sort(
+    (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+  );
+
+  const classesByStartTime = selectedDateClasses.reduce<Record<string, ClassSummary[]>>((acc, item) => {
+    const key = formatTime(item.startTime);
+    if (!acc[key]) {
+      acc[key] = [];
+    }
+    acc[key].push(item);
+    return acc;
+  }, {});
+
+  const nextAvailableClass = classes
+    .filter((c) => c.status === "scheduled")
+    .filter((c) => selectedLocation === "all" || c.location === selectedLocation)
+    .filter((c) => new Date(c.endTime) > new Date())
+    .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())[0];
+
+  const jumpToNextAvailable = () => {
+    if (!nextAvailableClass) return;
+    const nextDate = new Date(nextAvailableClass.startTime);
+    setCurrentDate(nextDate);
+    setSelectedDate(nextDate);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-teal-900 pb-20">
@@ -113,7 +139,7 @@ export default function CalendarPage() {
       <header className="sticky top-0 z-10 border-b border-white/10 bg-slate-900/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-3 sm:px-6 py-3 sm:py-4">
           <div className="min-w-0">
-            <a href="/" className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-teal-400 hover:text-teal-300">
+            <a href="/" className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-slate-200 hover:text-white">
               Daphstar Fitness
             </a>
             <h1 className="text-lg sm:text-2xl font-bold text-white">Class Calendar</h1>
@@ -215,80 +241,121 @@ export default function CalendarPage() {
           </div>
         ) : (
           <>
-            {/* Mobile List View - shown on small screens for week view */}
+            {/* Mobile Week View - compact day strip + selected-day agenda */}
             {viewMode === "week" && (
-              <div className="sm:hidden space-y-3">
-                {weekClassesByDate.length === 0 ? (
-                  <div className="rounded-xl glass-card p-6 text-center">
-                    <p className="text-slate-400">No classes this week</p>
+              <div className="sm:hidden space-y-4">
+                <div className="overflow-x-auto pb-1">
+                  <div className="flex gap-2 min-w-max">
+                    {weekDates.map((date) => {
+                      const dayClasses = getClassesForDate(date);
+                      const isSelected = isSameDay(date, selectedDate);
+                      const isToday = isSameDay(date, today);
+                      return (
+                        <button
+                          key={date.toISOString()}
+                          onClick={() => setSelectedDate(date)}
+                          className={`w-20 rounded-2xl border px-2 py-3 text-center transition ${
+                            isSelected
+                              ? "border-teal-300 bg-teal-500/80 text-white"
+                              : "border-white/10 bg-slate-800/60 text-slate-300 hover:bg-slate-700/70"
+                          }`}
+                        >
+                          <p className={`text-xs font-medium ${isSelected ? "text-teal-100" : "text-slate-400"}`}>
+                            {date.toLocaleDateString("default", { weekday: "short" })}
+                          </p>
+                          <p className="text-2xl font-bold leading-tight" suppressHydrationWarning>
+                            {date.getDate()}
+                          </p>
+                          <p className={`mt-1 text-xs ${isSelected ? "text-white" : "text-slate-400"}`}>
+                            {dayClasses.length} class{dayClasses.length === 1 ? "" : "es"}
+                          </p>
+                          {isToday && !isSelected && (
+                            <p className="mt-1 text-[10px] text-teal-300">Today</p>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
-                ) : (
-                  weekClassesByDate.map(({ date, classes: dayClasses, isToday }) => (
-                    <div key={date.toISOString()} className="rounded-xl glass-card overflow-hidden">
-                      {/* Day header */}
-                      <div className={`px-4 py-2 flex items-center gap-2 ${isToday ? 'bg-teal-500 text-white' : 'bg-white/10 text-slate-200'}`}>
-                        <span className="font-semibold" suppressHydrationWarning>
-                          {date.toLocaleDateString('default', { weekday: 'short', month: 'short', day: 'numeric' })}
-                        </span>
-                        {isToday && <span className="text-xs bg-white/20 px-2 py-0.5 rounded">Today</span>}
-                      </div>
-                      
-                      {/* Classes */}
-                      <div className="divide-y divide-white/10">
-                        {dayClasses.length === 0 ? (
-                          <p className="px-4 py-3 text-sm text-slate-300">No classes</p>
-                        ) : (
-                          dayClasses.map((c) => {
-                            const isFull = c.spotsLeft === 0;
-                            const isExpired = new Date(c.endTime) < new Date();
-                            const isUnavailable = isFull || isExpired;
-                            const query = new URLSearchParams({
-                              classId: c.id,
-                              title: c.title,
-                              startTime: c.startTime,
-                              endTime: c.endTime,
-                              spotsLeft: String(c.spotsLeft),
-                            }).toString();
-                            const colors = getCalendarVillageColor(c.location);
+                </div>
 
-                            return (
-                              <a
-                                key={c.id}
-                                href={isUnavailable ? "#" : `/booking?${query}`}
-                                className={`flex items-center gap-3 px-4 py-3 ${isUnavailable ? 'opacity-50' : 'hover:bg-white/10'}`}
-                                onClick={(e) => isUnavailable && e.preventDefault()}
-                              >
-                                {/* Time */}
-                                <div className="text-center w-14 flex-shrink-0">
-                                  <p className="text-sm font-bold text-teal-400" suppressHydrationWarning>
-                                    {formatTime(c.startTime)}
-                                  </p>
-                                  <p className="text-xs text-slate-300">{formatDuration(c.startTime, c.endTime)}</p>
-                                </div>
-                                
-                                {/* Village color bar */}
-                                <div className={`w-1 h-10 rounded-full flex-shrink-0 ${colors.dot}`} />
-                                
-                                {/* Info */}
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-medium text-white">{c.title}</p>
-                                  {c.location && <p className="text-xs text-slate-400">{c.location}</p>}
-                                </div>
-                                
-                                {/* Spots */}
-                                <div className={`text-xs font-medium px-2 py-1 rounded-full flex-shrink-0 ${
-                                  isExpired ? 'bg-slate-600/50 text-slate-400' : isFull ? 'bg-slate-600/50 text-slate-400' : 'bg-emerald-500/30 text-emerald-400'
-                                }`}>
-                                  {isExpired ? 'Expired' : isFull ? 'Full' : `${c.spotsLeft} left`}
-                                </div>
-                              </a>
-                            );
-                          })
-                        )}
-                      </div>
+                <div className="rounded-xl glass-card overflow-hidden">
+                  <div className="border-b border-white/10 bg-white/10 px-4 py-3">
+                    <p className="font-semibold text-white" suppressHydrationWarning>
+                      {selectedDate.toLocaleDateString("default", {
+                        weekday: "long",
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </p>
+                  </div>
+
+                  {selectedDateClasses.length === 0 ? (
+                    <div className="px-4 py-8 text-center">
+                      <p className="text-slate-300" suppressHydrationWarning>
+                        No classes today — view next available
+                      </p>
+                      <button
+                        onClick={jumpToNextAvailable}
+                        disabled={!nextAvailableClass}
+                        className="mt-3 rounded-lg bg-teal-500 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        View next available
+                      </button>
                     </div>
-                  ))
-                )}
+                  ) : (
+                    <div className="max-h-[48vh] overflow-y-auto">
+                      {Object.entries(classesByStartTime).map(([timeLabel, items]) => (
+                        <div key={timeLabel} className="border-b border-white/10 last:border-b-0">
+                          <p className="bg-slate-900/40 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-300">
+                            {timeLabel}
+                          </p>
+                          <div className="divide-y divide-white/10">
+                            {items.map((c) => {
+                              const isFull = c.spotsLeft === 0;
+                              const isExpired = new Date(c.endTime) < new Date();
+                              const isUnavailable = isFull || isExpired;
+                              const query = new URLSearchParams({
+                                classId: c.id,
+                                title: c.title,
+                                startTime: c.startTime,
+                                endTime: c.endTime,
+                                spotsLeft: String(c.spotsLeft),
+                              }).toString();
+                              const colors = getCalendarVillageColor(c.location);
+
+                              return (
+                                <a
+                                  key={c.id}
+                                  href={isUnavailable ? "#" : `/booking?${query}`}
+                                  className={`flex items-center gap-3 px-4 py-3 ${isUnavailable ? "opacity-50" : "hover:bg-white/10"}`}
+                                  onClick={(e) => isUnavailable && e.preventDefault()}
+                                >
+                                  <div className={`h-10 w-1 rounded-full flex-shrink-0 ${colors.dot}`} />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium text-white">{c.title}</p>
+                                    <p className="text-xs text-slate-400">
+                                      {formatDuration(c.startTime, c.endTime)}
+                                      {c.location ? ` • ${c.location}` : ""}
+                                    </p>
+                                  </div>
+                                  <div
+                                    className={`text-xs font-medium px-2 py-1 rounded-full flex-shrink-0 ${
+                                      isExpired || isFull
+                                        ? "bg-slate-600/50 text-slate-400"
+                                        : "bg-emerald-500/30 text-emerald-400"
+                                    }`}
+                                  >
+                                    {isExpired ? "Expired" : isFull ? "Full" : `${c.spotsLeft} left`}
+                                  </div>
+                                </a>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 

@@ -42,7 +42,7 @@ export default function CancelPage() {
 
       <div className="relative mx-auto max-w-lg">
         <div className="mb-6 flex items-center justify-between">
-          <a href="/" className="inline-flex items-center gap-2 text-base font-medium text-slate-300 hover:text-teal-400 transition">
+          <a href="/" className="inline-flex items-center gap-2 text-base font-medium text-slate-200 hover:text-white transition">
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>

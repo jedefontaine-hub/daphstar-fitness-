@@ -5,7 +5,7 @@ export default function TermsPage() {
         <div className="mb-8">
           <a
             href="/"
-            className="inline-flex items-center text-sm font-medium text-teal-400 hover:text-teal-300 transition"
+            className="inline-flex items-center text-sm font-medium text-slate-200 hover:text-white transition"
           >
             ← Back to Home
           </a>

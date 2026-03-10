@@ -144,7 +144,7 @@ export default function MyBookingsPage() {
       <header className="relative border-b border-white/10 bg-slate-900/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-4xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-5">
           <div>
-            <a href="/" className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-400 hover:text-teal-300 transition sm:text-sm">
+            <a href="/" className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-200 hover:text-white transition sm:text-sm">
               Daphstar Fitness
             </a>
             <h1 className="mt-1 text-xl font-bold text-white sm:text-2xl">My Bookings</h1>
@@ -222,7 +222,7 @@ export default function MyBookingsPage() {
                 </p>
                 <a
                   href="/calendar"
-                  className="mt-5 inline-flex items-center gap-2 rounded-full border border-teal-500/30 bg-teal-500/20 px-6 py-3 text-base font-medium text-teal-300 hover:bg-teal-500/30 transition"
+                  className="mt-5 inline-flex items-center gap-2 rounded-full border border-teal-500/30 bg-teal-500/20 px-6 py-3 text-base font-medium text-slate-100 hover:bg-teal-500/30 transition"
                 >
                   Browse classes to book
                   <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

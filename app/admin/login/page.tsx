@@ -100,7 +100,7 @@ export default function AdminLoginPage() {
           </p>
         </div>
 
-        <a href="/" className="mt-6 flex items-center justify-center gap-2 text-sm font-medium text-slate-400 hover:text-white transition">
+        <a href="/" className="mt-6 flex items-center justify-center gap-2 text-sm font-medium text-slate-200 hover:text-white transition">
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
