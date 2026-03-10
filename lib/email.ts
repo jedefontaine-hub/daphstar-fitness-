@@ -1,3 +1,45 @@
+export async function sendWelcomeEmail(params: {
+  customerEmail: string;
+  customerName: string;
+}): Promise<{ success: boolean; error?: string }> {
+  const client = getResend();
+  if (!client) {
+    console.warn("RESEND_API_KEY not configured – skipping welcome email");
+    return { success: true };
+  }
+
+  try {
+    await client.emails.send({
+      from: fromEmail,
+      to: params.customerEmail,
+      subject: `Welcome to Daphstar Fitness, ${params.customerName}!`,
+      html: `
+        <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; text-align: center;">
+          <h1 style="color: #1e293b; font-size: 28px; margin-bottom: 16px;">Welcome, ${params.customerName}!</h1>
+          <p style="color: #475569; font-size: 16px; line-height: 1.6;">
+            Thank you for joining Daphstar Fitness. We're excited to help you on your fitness journey!
+          </p>
+          <div style="background: #f1f5f9; border-radius: 16px; padding: 24px; margin: 24px 0;">
+            <p style="margin: 0; font-size: 18px; color: #1e293b; font-weight: 600;">
+              Explore classes, track your progress, and connect with our community.
+            </p>
+          </div>
+          <a href="${appUrl}" style="display: inline-block; margin-top: 16px; padding: 12px 24px; background: #2196F3; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
+            Get Started
+          </a>
+          <p style="color: #94a3b8; font-size: 12px; margin-top: 32px;">With love, Daphstar Fitness Team 💙</p>
+        </div>
+      `,
+    });
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to send welcome email:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Email send failed",
+    };
+  }
+}
 import { Resend } from "resend";
 
 let resend: Resend | null = null;

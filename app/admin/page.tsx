@@ -110,6 +110,7 @@ export default function AdminPage() {
   const [classesStatus, setClassesStatus] = useState<PageStatus>({ state: "loading" });
   const [isRecurring, setIsRecurring] = useState(false);
   const [applyToSeries, setApplyToSeries] = useState(false);
+  const [classLocationFilter, setClassLocationFilter] = useState<string>("all");
   const [expiredPasses, setExpiredPasses] = useState<CustomerWithPass[]>([]);
   const [lowPasses, setLowPasses] = useState<CustomerWithPass[]>([]);
   const [showExpiredPasses, setShowExpiredPasses] = useState(true);
@@ -401,7 +402,10 @@ export default function AdminPage() {
     });
   };
 
-  const selectableClasses = classes.filter((c) => c.status !== "cancelled" && new Date(c.endTime) >= new Date());
+  const filteredClasses = classLocationFilter === "all"
+    ? classes
+    : classes.filter((c) => c.location === classLocationFilter);
+  const selectableClasses = filteredClasses.filter((c) => c.status !== "cancelled" && new Date(c.endTime) >= new Date());
   const allSelected = selectableClasses.length > 0 && selectableClasses.every((c) => selectedClassIds.has(c.id));
 
   const toggleSelectAll = () => {
@@ -694,9 +698,19 @@ export default function AdminPage() {
             )}
 
             <section className="glass-card rounded-3xl p-6">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-3">
                   <h2 className="text-lg font-semibold text-white">Classes</h2>
+                  <select
+                    value={classLocationFilter}
+                    onChange={(e) => { setClassLocationFilter(e.target.value); setSelectedClassIds(new Set()); }}
+                    className="rounded-lg border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-medium text-slate-200 focus:border-purple-400 focus:outline-none"
+                  >
+                    <option value="all">All Villages</option>
+                    {villages.map((v) => (
+                      <option key={v.id} value={v.name}>{v.name}</option>
+                    ))}
+                  </select>
                   {selectableClasses.length > 0 && (
                     <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-400 hover:text-slate-300">
                       <input
@@ -741,7 +755,7 @@ export default function AdminPage() {
               ) : null}
 
               <div className="mt-6 grid gap-4">
-                {classes.map((item) => {
+                {filteredClasses.map((item) => {
                   const isCancelled = item.status === "cancelled";
                   const isExpired = !isCancelled && new Date(item.endTime) < new Date();
                   const isInactive = isCancelled || isExpired;

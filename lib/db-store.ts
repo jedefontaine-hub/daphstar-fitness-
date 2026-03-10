@@ -496,7 +496,10 @@ export type RegisterInput = {
   name: string;
   email: string;
   password: string;
-  retirementVillage?: string;
+  retirementVillage: string;
+  birthdate: string;
+  emergencyContactName: string;
+  emergencyContactPhone: string;
 };
 
 export type RegisterResult =
@@ -504,20 +507,20 @@ export type RegisterResult =
   | { ok: false; error: "email_exists" | "invalid_input" };
 
 export async function registerCustomer(input: RegisterInput): Promise<RegisterResult> {
-  if (!input.name || !input.email || !input.password) {
+  if (!input.name || !input.email || !input.password || !input.retirementVillage || !input.birthdate || !input.emergencyContactName || !input.emergencyContactPhone) {
     return { ok: false, error: "invalid_input" };
   }
-  
+
   const normalizedEmail = input.email.toLowerCase().trim();
-  
+
   const existing = await prisma.customer.findUnique({
     where: { email: normalizedEmail },
   });
-  
+
   if (existing) {
     return { ok: false, error: "email_exists" };
   }
-  
+
   const hashed = await hashPassword(input.password);
   const customer = await prisma.customer.create({
     data: {
@@ -525,9 +528,12 @@ export async function registerCustomer(input: RegisterInput): Promise<RegisterRe
       email: normalizedEmail,
       password: hashed,
       retirementVillage: input.retirementVillage,
+      birthdate: new Date(input.birthdate),
+      emergencyContactName: input.emergencyContactName,
+      emergencyContactPhone: input.emergencyContactPhone,
     },
   });
-  
+
   return { ok: true, customer: toCustomerPublic(customer) };
 }
 
