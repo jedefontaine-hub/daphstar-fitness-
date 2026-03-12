@@ -131,7 +131,9 @@ export async function fetchAdminClasses(
   const url = `/api/admin/classes${params.toString() ? `?${params}` : ""}`;
   const response = await fetch(url);
   if (!response.ok) {
-    throw new Error("Failed to load classes.");
+    const data = (await response.json().catch(() => null)) as { error?: string } | null;
+    const reason = data?.error ?? `status_${response.status}`;
+    throw new Error(`Failed to load classes (${reason}).`);
   }
   const data = (await response.json()) as { classes: AdminClassSummary[] };
   return data.classes;

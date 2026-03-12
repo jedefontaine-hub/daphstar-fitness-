@@ -200,3 +200,51 @@ export async function sendBirthdayEmail(params: {
     };
   }
 }
+
+export async function sendClassCancellationByAdminEmail(params: {
+  customerEmail: string;
+  customerName: string;
+  classTitle: string;
+  classStartTime: string;
+}): Promise<{ success: boolean; error?: string }> {
+  const client = getResend();
+  if (!client) {
+    console.warn("RESEND_API_KEY not configured – skipping class cancellation email");
+    return { success: true };
+  }
+
+  try {
+    await client.emails.send({
+      from: fromEmail,
+      to: params.customerEmail,
+      subject: `Class Cancelled: ${params.classTitle}`,
+      html: `
+        <div style="font-family: sans-serif; max-width: 520px; margin: 0 auto;">
+          <h1 style="color: #1e293b; font-size: 24px;">Class Update</h1>
+          <p style="color: #475569;">Hi ${params.customerName},</p>
+          <p style="color: #475569;">
+            We’re sorry, but the following class has been cancelled by the admin team:
+          </p>
+          <div style="background: #f1f5f9; border-radius: 12px; padding: 16px; margin: 16px 0;">
+            <p style="margin: 0; font-weight: 700; color: #1e293b;">${params.classTitle}</p>
+            <p style="margin: 8px 0 0; color: #475569;">${formatDateTime(params.classStartTime)}</p>
+          </div>
+          <p style="color: #475569;">
+            Please check the schedule for alternative classes.
+          </p>
+          <a href="${appUrl}" style="display: inline-block; margin-top: 12px; padding: 12px 24px; background: #2196F3; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
+            View Schedule
+          </a>
+          <p style="color: #94a3b8; font-size: 12px; margin-top: 28px;">Daphstar Fitness</p>
+        </div>
+      `,
+    });
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to send admin class cancellation email:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Email send failed",
+    };
+  }
+}

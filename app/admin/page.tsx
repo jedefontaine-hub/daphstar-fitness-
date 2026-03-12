@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   adminCancelClass,
@@ -12,6 +12,14 @@ import {
   type Attendee,
 } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
+import {
+  getWeekDates,
+  getMonthDates,
+  isSameDay,
+  formatTime,
+  formatWeekRange,
+  formatMonthYear,
+} from "@/lib/utils/date";
 
 type PageStatus =
   | { state: "idle" }
@@ -115,6 +123,10 @@ export default function AdminPage() {
   const [lowPasses, setLowPasses] = useState<CustomerWithPass[]>([]);
   const [showExpiredPasses, setShowExpiredPasses] = useState(true);
   const [selectedClassIds, setSelectedClassIds] = useState<Set<string>>(new Set());
+  const [classViewMode, setClassViewMode] = useState<"list" | "week" | "month">("month");
+  const [calendarDate, setCalendarDate] = useState(new Date());
+  const [selectedCalDate, setSelectedCalDate] = useState(new Date());
+  const hasAutoFocusedUpcomingClass = useRef(false);
 
   // Customers state
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -155,9 +167,27 @@ export default function AdminPage() {
     try {
       const data = await fetchAdminClasses();
       setClasses(data);
+
+      if (!hasAutoFocusedUpcomingClass.current && data.length > 0) {
+        const now = new Date();
+        const upcomingClass = data
+          .filter((item) => item.status === "scheduled" && new Date(item.endTime) >= now)
+          .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())[0];
+
+        const targetDate = new Date((upcomingClass ?? data[0])?.startTime ?? now.toISOString());
+        if (!Number.isNaN(targetDate.valueOf())) {
+          setCalendarDate(targetDate);
+          setSelectedCalDate(targetDate);
+          hasAutoFocusedUpcomingClass.current = true;
+        }
+      }
+
       setClassesStatus({ state: "idle" });
-    } catch {
-      setClassesStatus({ state: "error", message: "Unable to load classes." });
+    } catch (error) {
+      setClassesStatus({
+        state: "error",
+        message: error instanceof Error ? error.message : "Unable to load classes.",
+      });
     }
   };
 
@@ -271,6 +301,7 @@ export default function AdminPage() {
   };
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     setSelectedClassIds(new Set());
     if (activeTab === "classes") {
       loadClasses();
@@ -282,7 +313,7 @@ export default function AdminPage() {
     } else if (activeTab === "villages") {
       loadVillages();
     }
-  }, [activeTab]);
+  }, [activeTab, isAuthenticated]);
 
   const handleOpenCreate = () => setModal({ type: "create" });
   const handleOpenEdit = (classItem: AdminClassSummary) =>
@@ -402,9 +433,11 @@ export default function AdminPage() {
     });
   };
 
-  const filteredClasses = classLocationFilter === "all"
+  const filteredClasses = (classLocationFilter === "all"
     ? classes
-    : classes.filter((c) => c.location === classLocationFilter);
+    : classes.filter((c) => c.location === classLocationFilter)
+  )
+    .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
   const selectableClasses = filteredClasses.filter((c) => c.status !== "cancelled" && new Date(c.endTime) >= new Date());
   const allSelected = selectableClasses.length > 0 && selectableClasses.every((c) => selectedClassIds.has(c.id));
 
@@ -414,6 +447,46 @@ export default function AdminPage() {
     } else {
       setSelectedClassIds(new Set(selectableClasses.map((c) => c.id)));
     }
+  };
+
+  // Calendar helpers
+  const calWeekDates = getWeekDates(calendarDate);
+  const calMonthDates = getMonthDates(calendarDate);
+  const today = new Date();
+
+  const getClassesForDay = (date: Date) =>
+    filteredClasses.filter((c) => isSameDay(new Date(c.startTime), date));
+
+  const navigateCalPrev = () => {
+    const d = new Date(calendarDate);
+    if (classViewMode === "week") d.setDate(d.getDate() - 7);
+    else d.setMonth(d.getMonth() - 1);
+    setCalendarDate(d);
+  };
+
+  const navigateCalNext = () => {
+    const d = new Date(calendarDate);
+    if (classViewMode === "week") d.setDate(d.getDate() + 7);
+    else d.setMonth(d.getMonth() + 1);
+    setCalendarDate(d);
+  };
+
+  const goToCalToday = () => {
+    const now = new Date();
+    setCalendarDate(now);
+    setSelectedCalDate(now);
+  };
+
+  const nextUpcomingClass = filteredClasses.find(
+    (item) => item.status === "scheduled" && new Date(item.endTime) >= new Date()
+  );
+
+  const goToNextClass = () => {
+    if (!nextUpcomingClass) return;
+    const nextDate = new Date(nextUpcomingClass.startTime);
+    if (Number.isNaN(nextDate.valueOf())) return;
+    setCalendarDate(nextDate);
+    setSelectedCalDate(nextDate);
   };
 
   // Customer CRUD operations
@@ -701,6 +774,9 @@ export default function AdminPage() {
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-3">
                   <h2 className="text-lg font-semibold text-white">Classes</h2>
+                  <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-medium text-slate-300">
+                    {filteredClasses.length} loaded
+                  </span>
                   <select
                     value={classLocationFilter}
                     onChange={(e) => { setClassLocationFilter(e.target.value); setSelectedClassIds(new Set()); }}
@@ -733,6 +809,23 @@ export default function AdminPage() {
                       Cancel Selected ({selectedClassIds.size})
                     </button>
                   )}
+                  {/* View mode toggle */}
+                  <div className="flex rounded-xl border border-white/10 bg-white/5 p-1 gap-1">
+                    {(["list", "week", "month"] as const).map((mode) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => setClassViewMode(mode)}
+                        className={`rounded-lg px-3 py-1.5 text-xs font-semibold capitalize transition ${
+                          classViewMode === mode
+                            ? "bg-purple-500/30 text-white"
+                            : "text-slate-400 hover:text-white"
+                        }`}
+                      >
+                        {mode}
+                      </button>
+                    ))}
+                  </div>
                   <button
                     className="btn-glow rounded-full px-5 py-2.5 text-sm font-semibold text-white"
                     type="button"
@@ -754,110 +847,359 @@ export default function AdminPage() {
                 </div>
               ) : null}
 
-              <div className="mt-6 grid gap-4">
-                {filteredClasses.map((item) => {
-                  const isCancelled = item.status === "cancelled";
-                  const isExpired = !isCancelled && new Date(item.endTime) < new Date();
-                  const isInactive = isCancelled || isExpired;
-                  const fillPercent = Math.round((item.booked / item.capacity) * 100);
-                  return (
-                    <div
-                      key={item.id}
-                      className={`group flex flex-col gap-4 rounded-2xl border p-5 transition sm:flex-row sm:items-center sm:justify-between ${
-                        isInactive
-                          ? "border-white/5 bg-white/[0.01] opacity-50"
-                          : "border-white/5 bg-white/[0.02] hover:border-purple-500/30 hover:bg-white/[0.04]"
-                      }`}
-                    >
-                      <div className="flex items-center gap-4">
-                        {!isInactive && (
-                          <input
-                            type="checkbox"
-                            checked={selectedClassIds.has(item.id)}
-                            onChange={() => toggleClassSelection(item.id)}
-                            className="h-4 w-4 cursor-pointer rounded border-white/20 bg-white/5 accent-purple-500"
-                          />
-                        )}
-                        <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${
+              {/* ── List view ── */}
+              {classViewMode === "list" && (
+                <div className="mt-6 grid gap-4">
+                  {filteredClasses.length === 0 ? (
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.02] px-5 py-6 text-sm text-slate-400">
+                      No classes found.
+                    </div>
+                  ) : filteredClasses.map((item) => {
+                    const isCancelled = item.status === "cancelled";
+                    const isExpired = !isCancelled && new Date(item.endTime) < new Date();
+                    const isInactive = isCancelled || isExpired;
+                    const fillPercent = Math.round((item.booked / item.capacity) * 100);
+                    return (
+                      <div
+                        key={item.id}
+                        className={`group flex flex-col gap-4 rounded-2xl border p-5 transition sm:flex-row sm:items-center sm:justify-between ${
                           isInactive
-                            ? "bg-slate-500/20"
-                            : "bg-gradient-to-br from-purple-500/20 to-fuchsia-500/20"
-                        }`}>
-                          <svg className={`h-6 w-6 ${isInactive ? 'text-slate-400' : 'text-purple-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                          </svg>
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-white group-hover:text-purple-300 transition">
-                            {item.title}
-                            {isCancelled ? (
-                              <span className="ml-2 rounded bg-rose-500/20 px-2 py-0.5 text-xs font-normal text-rose-400">
-                                Cancelled
-                              </span>
-                            ) : isExpired ? (
-                              <span className="ml-2 rounded bg-slate-500/20 px-2 py-0.5 text-xs font-normal text-slate-400">
-                                Expired
-                              </span>
-                            ) : null}
-                          </h3>
-                          <p className="text-sm text-slate-400" suppressHydrationWarning>
-                            {formatDateRange(item.startTime, item.endTime)}
-                          </p>
-                          {item.location && (
-                            <p className="text-xs text-emerald-400/70">
-                              📍 {item.location}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-3">
-                        <div className="text-right">
-                          <p className="text-sm font-medium text-white">
-                            {item.booked}/{item.capacity}
-                          </p>
-                          <div className="mt-1 h-1.5 w-20 overflow-hidden rounded-full bg-white/10">
-                            <div
-                              className={`h-full rounded-full ${
-                                fillPercent >= 100
-                                  ? "bg-rose-500"
-                                  : fillPercent >= 80
-                                    ? "bg-amber-500"
-                                    : "bg-emerald-500"
-                              }`}
-                              style={{ width: `${Math.min(fillPercent, 100)}%` }}
+                            ? "border-white/5 bg-white/[0.01] opacity-50"
+                            : "border-white/5 bg-white/[0.02] hover:border-purple-500/30 hover:bg-white/[0.04]"
+                        }`}
+                      >
+                        <div className="flex items-center gap-4">
+                          {!isInactive && (
+                            <input
+                              type="checkbox"
+                              checked={selectedClassIds.has(item.id)}
+                              onChange={() => toggleClassSelection(item.id)}
+                              className="h-4 w-4 cursor-pointer rounded border-white/20 bg-white/5 accent-purple-500"
                             />
+                          )}
+                          <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${
+                            isInactive
+                              ? "bg-slate-500/20"
+                              : "bg-gradient-to-br from-purple-500/20 to-fuchsia-500/20"
+                          }`}>
+                            <svg className={`h-6 w-6 ${isInactive ? "text-slate-400" : "text-purple-400"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-white group-hover:text-purple-300 transition">
+                              {item.title}
+                              {isCancelled ? (
+                                <span className="ml-2 rounded bg-rose-500/20 px-2 py-0.5 text-xs font-normal text-rose-400">Cancelled</span>
+                              ) : isExpired ? (
+                                <span className="ml-2 rounded bg-slate-500/20 px-2 py-0.5 text-xs font-normal text-slate-400">Expired</span>
+                              ) : null}
+                            </h3>
+                            <p className="text-sm text-slate-400" suppressHydrationWarning>
+                              {formatDateRange(item.startTime, item.endTime)}
+                            </p>
+                            {item.location && (
+                              <p className="text-xs text-emerald-400/70">📍 {item.location}</p>
+                            )}
                           </div>
                         </div>
-                        <button
-                          className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-slate-300 transition hover:border-purple-500/50 hover:text-white"
-                          type="button"
-                          onClick={() => handleOpenAttendees(item)}
-                        >
-                          Attendees
-                        </button>
-                        {!isInactive ? (
-                          <>
-                            <button
-                              className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-slate-300 transition hover:border-purple-500/50 hover:text-white"
-                              type="button"
-                              onClick={() => handleOpenEdit(item)}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              className="rounded-full border border-rose-500/30 bg-rose-500/10 px-4 py-2 text-xs font-semibold text-rose-300 transition hover:border-rose-500 hover:bg-rose-500/20"
-                              type="button"
-                              onClick={() => handleOpenCancelConfirm(item)}
-                            >
-                              Cancel
-                            </button>
-                          </>
-                        ) : null}
+                        <div className="flex flex-wrap items-center gap-3">
+                          <div className="text-right">
+                            <p className="text-sm font-medium text-white">{item.booked}/{item.capacity}</p>
+                            <div className="mt-1 h-1.5 w-20 overflow-hidden rounded-full bg-white/10">
+                              <div
+                                className={`h-full rounded-full ${fillPercent >= 100 ? "bg-rose-500" : fillPercent >= 80 ? "bg-amber-500" : "bg-emerald-500"}`}
+                                style={{ width: `${Math.min(fillPercent, 100)}%` }}
+                              />
+                            </div>
+                          </div>
+                          <button
+                            className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-slate-300 transition hover:border-purple-500/50 hover:text-white"
+                            type="button"
+                            onClick={() => handleOpenAttendees(item)}
+                          >
+                            Attendees
+                          </button>
+                          {!isInactive ? (
+                            <>
+                              <button
+                                className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-slate-300 transition hover:border-purple-500/50 hover:text-white"
+                                type="button"
+                                onClick={(event) => {
+                                  event.preventDefault();
+                                  event.stopPropagation();
+                                  handleOpenEdit(item);
+                                }}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                className="rounded-full border border-rose-500/30 bg-rose-500/10 px-4 py-2 text-xs font-semibold text-rose-300 transition hover:border-rose-500 hover:bg-rose-500/20"
+                                type="button"
+                                onClick={() => handleOpenCancelConfirm(item)}
+                              >
+                                Cancel
+                              </button>
+                            </>
+                          ) : null}
+                        </div>
                       </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* ── Week / Month calendar view ── */}
+              {(classViewMode === "week" || classViewMode === "month") && (
+                <div className="mt-6">
+                  {/* Calendar navigation */}
+                  <div className="mb-4 flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={navigateCalPrev}
+                      className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-300 transition hover:border-purple-500/40 hover:text-white"
+                    >
+                      ‹
+                    </button>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-semibold text-white" suppressHydrationWarning>
+                        {classViewMode === "week"
+                          ? formatWeekRange(calWeekDates)
+                          : formatMonthYear(calendarDate)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={goToNextClass}
+                        disabled={!nextUpcomingClass}
+                        className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-slate-300 transition enabled:hover:border-purple-500/40 enabled:hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Next Class
+                      </button>
+                      <button
+                        type="button"
+                        onClick={goToCalToday}
+                        className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-slate-300 transition hover:border-purple-500/40 hover:text-white"
+                      >
+                        Today
+                      </button>
                     </div>
-                  );
-                })}
-              </div>
+                    <button
+                      type="button"
+                      onClick={navigateCalNext}
+                      className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-300 transition hover:border-purple-500/40 hover:text-white"
+                    >
+                      ›
+                    </button>
+                  </div>
+
+                  {/* Day-of-week headers */}
+                  <div className="mb-2 grid grid-cols-7 gap-1 text-center">
+                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
+                      <div key={d} className="py-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                        {d}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Week view: one row of 7 columns */}
+                  {classViewMode === "week" && (
+                    <div className="grid grid-cols-7 gap-1">
+                      {calWeekDates.map((date) => {
+                        const dayClasses = getClassesForDay(date);
+                        const isToday = isSameDay(date, today);
+                        return (
+                          <div
+                            key={date.toISOString()}
+                            className={`min-h-[120px] rounded-xl border p-2 ${
+                              isToday ? "border-purple-500/40 bg-purple-500/5" : "border-white/5 bg-white/[0.02]"
+                            }`}
+                          >
+                            <div className={`mb-2 text-center text-xs font-bold ${isToday ? "text-purple-400" : "text-slate-400"}`}>
+                              {date.getDate()}
+                            </div>
+                            <div className="space-y-1">
+                              {dayClasses.map((item) => {
+                                const isCancelled = item.status === "cancelled";
+                                const isExpired = !isCancelled && new Date(item.endTime) < new Date();
+                                const isInactive = isCancelled || isExpired;
+                                const fillPercent = Math.round((item.booked / item.capacity) * 100);
+                                return (
+                                  <button
+                                    key={item.id}
+                                    type="button"
+                                    onClick={(event) => {
+                                      event.preventDefault();
+                                      event.stopPropagation();
+                                      if (!isInactive) {
+                                        handleOpenEdit(item);
+                                        return;
+                                      }
+                                      handleOpenAttendees(item);
+                                    }}
+                                    className={`w-full rounded-lg p-1.5 text-left transition ${
+                                      isCancelled
+                                        ? "bg-rose-500/10 text-rose-400 opacity-60"
+                                        : isExpired
+                                        ? "bg-slate-500/10 text-slate-400 opacity-60"
+                                        : fillPercent >= 100
+                                        ? "bg-rose-500/15 text-rose-300 hover:bg-rose-500/25"
+                                        : fillPercent >= 80
+                                        ? "bg-amber-500/15 text-amber-300 hover:bg-amber-500/25"
+                                        : "bg-purple-500/15 text-purple-300 hover:bg-purple-500/25"
+                                    }`}
+                                  >
+                                    <p className="truncate text-[11px] font-semibold leading-tight">{item.title}</p>
+                                    <p className="text-[10px] opacity-80" suppressHydrationWarning>{formatTime(item.startTime)}</p>
+                                    {!isInactive && (
+                                      <p className="text-[10px] opacity-70">{item.booked}/{item.capacity}</p>
+                                    )}
+                                  </button>
+                                );
+                              })}
+                              {dayClasses.length === 0 && (
+                                <p className="text-center text-[10px] text-slate-600 pt-2">—</p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Month view: 6-week grid with day-click to show details */}
+                  {classViewMode === "month" && (
+                    <>
+                      <div className="grid grid-cols-7 gap-1">
+                        {calMonthDates.map((date) => {
+                          const dayClasses = getClassesForDay(date);
+                          const isToday = isSameDay(date, today);
+                          const isSelected = isSameDay(date, selectedCalDate);
+                          const isCurrentMonth = date.getMonth() === calendarDate.getMonth();
+                          const scheduledCount = dayClasses.filter((c) => c.status === "scheduled" && new Date(c.endTime) >= today).length;
+                          return (
+                            <button
+                              key={date.toISOString()}
+                              type="button"
+                              onClick={() => setSelectedCalDate(new Date(date))}
+                              className={`relative min-h-[64px] rounded-xl border p-2 text-left transition ${
+                                isSelected
+                                  ? "border-purple-500/60 bg-purple-500/10"
+                                  : isToday
+                                  ? "border-purple-500/30 bg-purple-500/5"
+                                  : "border-white/5 bg-white/[0.02] hover:border-white/10 hover:bg-white/[0.04]"
+                              } ${!isCurrentMonth ? "opacity-30" : ""}`}
+                            >
+                              <span className={`text-xs font-bold ${isToday ? "text-purple-400" : isCurrentMonth ? "text-slate-300" : "text-slate-600"}`}>
+                                {date.getDate()}
+                              </span>
+                              {dayClasses.length > 0 && (
+                                <div className="mt-1 flex flex-wrap gap-0.5">
+                                  {dayClasses.slice(0, 3).map((c) => {
+                                    const inactive = c.status === "cancelled" || new Date(c.endTime) < today;
+                                    const full = (c.booked / c.capacity) >= 1;
+                                    const nearly = (c.booked / c.capacity) >= 0.8;
+                                    return (
+                                      <span
+                                        key={c.id}
+                                        className={`h-1.5 w-1.5 rounded-full ${
+                                          inactive ? "bg-slate-500" : full ? "bg-rose-400" : nearly ? "bg-amber-400" : "bg-purple-400"
+                                        }`}
+                                      />
+                                    );
+                                  })}
+                                  {dayClasses.length > 3 && (
+                                    <span className="text-[9px] text-slate-500">+{dayClasses.length - 3}</span>
+                                  )}
+                                </div>
+                              )}
+                              {scheduledCount > 0 && (
+                                <span className="absolute bottom-1 right-2 text-[9px] text-slate-500">{scheduledCount}</span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Selected day detail panel */}
+                      {(() => {
+                        const dayClasses = getClassesForDay(selectedCalDate);
+                        if (dayClasses.length === 0) return (
+                          <div className="mt-4 rounded-2xl border border-white/5 bg-white/[0.02] px-5 py-4 text-sm text-slate-500">
+                            No classes on {selectedCalDate.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}.
+                          </div>
+                        );
+                        return (
+                          <div className="mt-4 space-y-2">
+                            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 px-1" suppressHydrationWarning>
+                              {selectedCalDate.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
+                            </p>
+                            {dayClasses.map((item) => {
+                              const isCancelled = item.status === "cancelled";
+                              const isExpired = !isCancelled && new Date(item.endTime) < new Date();
+                              const isInactive = isCancelled || isExpired;
+                              const fillPercent = Math.round((item.booked / item.capacity) * 100);
+                              return (
+                                <div
+                                  key={item.id}
+                                  className={`flex items-center justify-between rounded-2xl border p-4 transition ${
+                                    isInactive
+                                      ? "border-white/5 bg-white/[0.01] opacity-60"
+                                      : "border-purple-500/20 bg-purple-500/5 hover:border-purple-500/40"
+                                  }`}
+                                >
+                                  <div>
+                                    <p className="font-semibold text-white">
+                                      {item.title}
+                                      {isCancelled && <span className="ml-2 rounded bg-rose-500/20 px-2 py-0.5 text-xs font-normal text-rose-400">Cancelled</span>}
+                                      {isExpired && <span className="ml-2 rounded bg-slate-500/20 px-2 py-0.5 text-xs font-normal text-slate-400">Expired</span>}
+                                    </p>
+                                    <p className="text-sm text-slate-400" suppressHydrationWarning>
+                                      {formatTime(item.startTime)} – {formatTime(item.endTime)}
+                                    </p>
+                                    {item.location && <p className="text-xs text-emerald-400/70">📍 {item.location}</p>}
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    <div className="text-right">
+                                      <p className="text-sm font-medium text-white">{item.booked}/{item.capacity}</p>
+                                      <div className="mt-1 h-1.5 w-16 overflow-hidden rounded-full bg-white/10">
+                                        <div
+                                          className={`h-full rounded-full ${fillPercent >= 100 ? "bg-rose-500" : fillPercent >= 80 ? "bg-amber-500" : "bg-emerald-500"}`}
+                                          style={{ width: `${Math.min(fillPercent, 100)}%` }}
+                                        />
+                                      </div>
+                                    </div>
+                                    <button type="button" onClick={() => handleOpenAttendees(item)} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-300 transition hover:border-purple-500/50 hover:text-white">
+                                      Attendees
+                                    </button>
+                                    {!isInactive && (
+                                      <>
+                                        <button
+                                          type="button"
+                                          onClick={(event) => {
+                                            event.preventDefault();
+                                            event.stopPropagation();
+                                            handleOpenEdit(item);
+                                          }}
+                                          className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-300 transition hover:border-purple-500/50 hover:text-white"
+                                        >
+                                          Edit
+                                        </button>
+                                        <button type="button" onClick={() => handleOpenCancelConfirm(item)} className="rounded-full border border-rose-500/30 bg-rose-500/10 px-3 py-1.5 text-xs font-semibold text-rose-300 transition hover:border-rose-500 hover:bg-rose-500/20">
+                                          Cancel
+                                        </button>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
+                    </>
+                  )}
+                </div>
+              )}
             </section>
           </>
         )}

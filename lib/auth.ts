@@ -6,6 +6,7 @@ const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET!;
 const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH!;
 
 const ACCESS_TOKEN_EXPIRES = "15m";
+const ADMIN_ACCESS_TOKEN_EXPIRES = "7d";
 const REFRESH_TOKEN_EXPIRES_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 // ---- Customer JWT ----
@@ -49,7 +50,7 @@ export function signAdminAccessToken(): string {
   return jwt.sign(
     { sub: "admin", type: "admin" },
     JWT_ACCESS_SECRET,
-    { expiresIn: ACCESS_TOKEN_EXPIRES }
+    { expiresIn: ADMIN_ACCESS_TOKEN_EXPIRES }
   );
 }
 
@@ -143,6 +144,20 @@ export function extractBearerToken(request: Request): string | null {
   return auth.slice(7);
 }
 
+function extractCookieToken(request: Request): string | null {
+  const cookieHeader = request.headers.get("cookie");
+  if (!cookieHeader) return null;
+  const pairs = cookieHeader.split(";");
+  for (const pair of pairs) {
+    const trimmed = pair.trim();
+    if (trimmed.startsWith("admin_access_token=")) {
+      const value = trimmed.slice("admin_access_token=".length);
+      return decodeURIComponent(value);
+    }
+  }
+  return null;
+}
+
 export function getCustomerFromRequest(
   request: Request
 ): CustomerTokenPayload | null {
@@ -154,7 +169,7 @@ export function getCustomerFromRequest(
 export function getAdminFromRequest(
   request: Request
 ): AdminTokenPayload | null {
-  const token = extractBearerToken(request);
+  const token = extractBearerToken(request) ?? extractCookieToken(request);
   if (!token) return null;
   return verifyAdminAccessToken(token);
 }
