@@ -7,8 +7,11 @@ export async function GET(request: Request) {
   const to = searchParams.get("to") ?? undefined;
 
   const rawClasses = await listClasses(from, to);
+  const visibleClasses = rawClasses.filter(
+    (item) => item.title.trim().toLowerCase() !== "fitness"
+  );
   const classes = await Promise.all(
-    rawClasses.map(async (item) => {
+    visibleClasses.map(async (item) => {
       const booked = await countActiveBookings(item.id);
       return {
         id: item.id,

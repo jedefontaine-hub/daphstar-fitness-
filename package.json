@@ -5,6 +5,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:web": "next dev",
+    "start:all": "powershell -ExecutionPolicy Bypass -File ./scripts/start-all.ps1",
+    "help:run": "node scripts/help-run.mjs",
+    "install:mobile-designer": "npm --prefix mobile-designer install",
+    "dev:mobile-designer": "npm --prefix mobile-designer run start --",
     "build": "prisma generate && prisma migrate deploy && next build",
     "start": "next start",
     "lint": "eslint",
@@ -15,6 +20,8 @@
     "db:seed": "npx tsx prisma/seed.ts",
     "db:reset": "prisma migrate reset --force",
     "generate-icons": "node scripts/generate-icons.mjs",
+    "codegen:expo-screen": "node scripts/generate-expo-screen.mjs --input specs/example-design.json --output mobile-designer/generated/GeneratedScreen.tsx --component GeneratedScreen",
+    "test:codegen": "node scripts/test-codegen.mjs",
     "postinstall": "prisma generate"
   },
   "prisma": {
@@ -26,6 +33,7 @@
     "dotenv": "^17.2.4",
     "jsonwebtoken": "^9.0.3",
     "next": "16.1.6",
+    "next-auth": "^4.24.11",
     "prisma": "^5.22.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
