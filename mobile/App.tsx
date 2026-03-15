@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   RefreshControl,
   ScrollView,
   SafeAreaView,
@@ -35,6 +36,24 @@ function formatDate(value?: string) {
 
 function normalizeStatus(value?: string) {
   return (value ?? '').trim().toLowerCase();
+}
+
+function toDayKey(value?: string | Date) {
+  if (!value) return null;
+  const parsed = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  const y = parsed.getFullYear();
+  const m = String(parsed.getMonth() + 1).padStart(2, '0');
+  const d = String(parsed.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function startOfMonth(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function addMonths(date: Date, delta: number) {
+  return new Date(date.getFullYear(), date.getMonth() + delta, 1);
 }
 
 function labelForStatus(value?: string) {
@@ -84,9 +103,12 @@ function AppButton({
 export default function App() {
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [activeTab, setActiveTab] = useState<'classes' | 'bookings'>('classes');
+  const [classesViewMode, setClassesViewMode] = useState<'list' | 'calendar'>('list');
   const [classFilter, setClassFilter] = useState<'upcoming' | 'all' | 'cancelled' | 'booked'>(
     'upcoming'
   );
+  const [calendarMonth, setCalendarMonth] = useState(() => startOfMonth(new Date()));
+  const [selectedCalendarDay, setSelectedCalendarDay] = useState(() => toDayKey(new Date()));
   const [loading, setLoading] = useState(false);
   const [bookingsLoading, setBookingsLoading] = useState(false);
   const [healthChecking, setHealthChecking] = useState(false);
@@ -94,6 +116,7 @@ export default function App() {
   const [healthStatus, setHealthStatus] = useState<string>('Not checked yet');
   const [bookingClassId, setBookingClassId] = useState<string | null>(null);
   const [cancellingBookingId, setCancellingBookingId] = useState<string | null>(null);
+  const [selectedClass, setSelectedClass] = useState<MobileClassItem | null>(null);
   const [classes, setClasses] = useState<MobileClassItem[]>([]);
   const [myBookings, setMyBookings] = useState<MobileBookingItem[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -139,6 +162,64 @@ export default function App() {
       }),
     [classes, classFilter, activeBookedClassIds]
   );
+  const classCountsByDay = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const item of classes) {
+      const key = toDayKey(item.startTime);
+      if (!key) continue;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return counts;
+  }, [classes]);
+  const monthLabel = useMemo(
+    () => calendarMonth.toLocaleDateString(undefined, { month: 'long', year: 'numeric' }),
+    [calendarMonth]
+  );
+  const calendarCells = useMemo(() => {
+    const first = startOfMonth(calendarMonth);
+    const firstWeekday = first.getDay();
+    const startCellDate = new Date(first);
+    startCellDate.setDate(first.getDate() - firstWeekday);
+
+    const cells: Array<{ dayKey: string; dayNumber: number; inMonth: boolean; count: number; isToday: boolean }> = [];
+    const todayKey = toDayKey(new Date());
+
+    for (let i = 0; i < 42; i++) {
+      const date = new Date(startCellDate);
+      date.setDate(startCellDate.getDate() + i);
+      const dayKey = toDayKey(date) ?? '';
+      cells.push({
+        dayKey,
+        dayNumber: date.getDate(),
+        inMonth: date.getMonth() === calendarMonth.getMonth(),
+        count: classCountsByDay.get(dayKey) ?? 0,
+        isToday: dayKey === todayKey,
+      });
+    }
+    return cells;
+  }, [calendarMonth, classCountsByDay]);
+  const classesForSelectedDay = useMemo(() => {
+    if (!selectedCalendarDay) return [];
+    return classes
+      .filter((item) => toDayKey(item.startTime) === selectedCalendarDay)
+      .sort((a, b) => {
+        const ta = a.startTime ? new Date(a.startTime).getTime() : 0;
+        const tb = b.startTime ? new Date(b.startTime).getTime() : 0;
+        return ta - tb;
+      });
+  }, [classes, selectedCalendarDay]);
+  const selectedClassBooked = selectedClass ? activeBookedClassIds.has(selectedClass.id) : false;
+  const selectedClassBookButtonTitle = selectedClass
+    ? selectedClassBooked
+      ? 'Already booked'
+      : bookingClassId === selectedClass.id
+        ? 'Booking...'
+        : selectedClass.status === 'cancelled'
+          ? 'Cancelled'
+          : selectedClass.spotsLeft === 0
+            ? 'Full'
+            : 'Book class'
+    : 'Book class';
 
   async function load() {
     setLoading(true);
@@ -399,6 +480,67 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSignedIn, customerEmail]);
 
+  function renderClassCard(item: MobileClassItem) {
+    return (
+      <View style={styles.card} key={item.id}>
+        {activeBookedClassIds.has(item.id) ? (
+          <View style={styles.bookedBanner}>
+            <Text style={styles.bookedBannerText}>Already booked</Text>
+          </View>
+        ) : null}
+        <Pressable
+          style={({ pressed }) => [styles.cardTapArea, pressed ? styles.cardPressed : null]}
+          onPress={() => setSelectedClass(item)}
+        >
+          <View style={styles.cardHeaderRow}>
+            <Text style={styles.itemTitle}>{item.title}</Text>
+            <View
+              style={[
+                styles.statusChip,
+                normalizeStatus(item.status) === 'cancelled'
+                  ? styles.statusChipCancelled
+                  : styles.statusChipScheduled,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.statusChipText,
+                  normalizeStatus(item.status) === 'cancelled'
+                    ? styles.statusChipTextCancelled
+                    : styles.statusChipTextScheduled,
+                ]}
+              >
+                {labelForStatus(item.status)}
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.itemSub}>{formatDate(item.startTime)}</Text>
+          {item.location ? <Text style={styles.itemSub}>Location: {item.location}</Text> : null}
+          <Text style={styles.itemSub}>Spots left: {item.spotsLeft ?? 'N/A'}</Text>
+          <Text style={styles.detailsHint}>Tap for details</Text>
+        </Pressable>
+        <View style={styles.bookButtonWrap}>
+          <AppButton
+            title={
+              activeBookedClassIds.has(item.id)
+                ? 'Already booked'
+                : bookingClassId === item.id
+                  ? 'Booking...'
+                  : 'Book'
+            }
+            onPress={() => onBook(item.id)}
+            disabled={
+              activeBookedClassIds.has(item.id) ||
+              bookingClassId !== null ||
+              item.spotsLeft === 0 ||
+              item.status === 'cancelled'
+            }
+          />
+        </View>
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
@@ -498,6 +640,23 @@ export default function App() {
           <View style={styles.listContent}>
             <Text style={styles.sectionTitle}>Available classes</Text>
             <Text style={styles.pullHint}>Pull down to refresh this list.</Text>
+            <View style={styles.viewModeRow}>
+              <Pressable
+                style={[styles.filterPill, classesViewMode === 'list' ? styles.filterPillActive : null]}
+                onPress={() => setClassesViewMode('list')}
+              >
+                <Text style={[styles.filterPillText, classesViewMode === 'list' ? styles.filterPillTextActive : null]}>List</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.filterPill, classesViewMode === 'calendar' ? styles.filterPillActive : null]}
+                onPress={() => setClassesViewMode('calendar')}
+              >
+                <Text style={[styles.filterPillText, classesViewMode === 'calendar' ? styles.filterPillTextActive : null]}>Calendar</Text>
+              </Pressable>
+            </View>
+
+            {classesViewMode === 'list' ? (
+              <>
             <View style={styles.filterRow}>
               <Pressable
                 style={[styles.filterPill, classFilter === 'upcoming' ? styles.filterPillActive : null]}
@@ -530,58 +689,73 @@ export default function App() {
             </Text>
 
             {filteredClasses.length === 0 ? <Text style={styles.emptyText}>No classes in this view.</Text> : null}
-            {filteredClasses.map((item) => (
-              <View style={styles.card} key={item.id}>
-                {activeBookedClassIds.has(item.id) ? (
-                  <View style={styles.bookedBanner}>
-                    <Text style={styles.bookedBannerText}>Already booked</Text>
-                  </View>
-                ) : null}
-                <View style={styles.cardHeaderRow}>
-                  <Text style={styles.itemTitle}>{item.title}</Text>
-                  <View
-                    style={[
-                      styles.statusChip,
-                      normalizeStatus(item.status) === 'cancelled'
-                        ? styles.statusChipCancelled
-                        : styles.statusChipScheduled,
-                    ]}
+            {filteredClasses.map(renderClassCard)}
+              </>
+            ) : (
+              <>
+                <View style={styles.calendarHeaderRow}>
+                  <Pressable
+                    style={styles.calendarNavButton}
+                    onPress={() => setCalendarMonth((prev) => addMonths(prev, -1))}
                   >
-                    <Text
+                    <Text style={styles.calendarNavButtonText}>{'<'}</Text>
+                  </Pressable>
+                  <Text style={styles.calendarMonthLabel}>{monthLabel}</Text>
+                  <Pressable
+                    style={styles.calendarNavButton}
+                    onPress={() => setCalendarMonth((prev) => addMonths(prev, 1))}
+                  >
+                    <Text style={styles.calendarNavButtonText}>{'>'}</Text>
+                  </Pressable>
+                </View>
+
+                <View style={styles.calendarWeekRow}>
+                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                    <Text key={day} style={styles.calendarWeekLabel}>{day}</Text>
+                  ))}
+                </View>
+
+                <View style={styles.calendarGrid}>
+                  {calendarCells.map((cell) => (
+                    <Pressable
+                      key={cell.dayKey}
                       style={[
-                        styles.statusChipText,
-                        normalizeStatus(item.status) === 'cancelled'
-                          ? styles.statusChipTextCancelled
-                          : styles.statusChipTextScheduled,
+                        styles.calendarCell,
+                        !cell.inMonth ? styles.calendarCellOutside : null,
+                        selectedCalendarDay === cell.dayKey ? styles.calendarCellSelected : null,
                       ]}
+                      onPress={() => setSelectedCalendarDay(cell.dayKey)}
                     >
-                      {labelForStatus(item.status)}
-                    </Text>
-                  </View>
+                      <Text
+                        style={[
+                          styles.calendarCellDay,
+                          !cell.inMonth ? styles.calendarCellDayOutside : null,
+                          cell.isToday ? styles.calendarCellDayToday : null,
+                          selectedCalendarDay === cell.dayKey ? styles.calendarCellDaySelected : null,
+                        ]}
+                      >
+                        {cell.dayNumber}
+                      </Text>
+                      {cell.count > 0 ? (
+                        <View style={styles.calendarCountBadge}>
+                          <Text style={styles.calendarCountText}>{cell.count}</Text>
+                        </View>
+                      ) : null}
+                    </Pressable>
+                  ))}
                 </View>
-                <Text style={styles.itemSub}>{formatDate(item.startTime)}</Text>
-                {item.location ? <Text style={styles.itemSub}>Location: {item.location}</Text> : null}
-                <Text style={styles.itemSub}>Spots left: {item.spotsLeft ?? 'N/A'}</Text>
-                <View style={styles.bookButtonWrap}>
-                  <AppButton
-                    title={
-                      activeBookedClassIds.has(item.id)
-                        ? 'Already booked'
-                        : bookingClassId === item.id
-                          ? 'Booking...'
-                          : 'Book'
-                    }
-                    onPress={() => onBook(item.id)}
-                    disabled={
-                      activeBookedClassIds.has(item.id) ||
-                      bookingClassId !== null ||
-                      item.spotsLeft === 0 ||
-                      item.status === 'cancelled'
-                    }
-                  />
-                </View>
-              </View>
-            ))}
+
+                <Text style={styles.sectionTitle}>
+                  {selectedCalendarDay
+                    ? `Classes on ${new Date(`${selectedCalendarDay}T12:00:00`).toLocaleDateString()}`
+                    : 'Select a date'}
+                </Text>
+                {classesForSelectedDay.length === 0 ? (
+                  <Text style={styles.emptyText}>No classes on this date.</Text>
+                ) : null}
+                {classesForSelectedDay.map(renderClassCard)}
+              </>
+            )}
           </View>
         ) : isSignedIn ? (
           <View style={styles.listContent}>
@@ -619,6 +793,46 @@ export default function App() {
 
         <StatusBar style="auto" />
       </ScrollView>
+
+      <Modal
+        visible={selectedClass !== null}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setSelectedClass(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <Pressable style={styles.modalBackdrop} onPress={() => setSelectedClass(null)} />
+          {selectedClass ? (
+            <View style={styles.modalSheet}>
+              <View style={styles.modalHandle} />
+              <Text style={styles.modalTitle}>{selectedClass.title}</Text>
+              <Text style={styles.modalSub}>{formatDate(selectedClass.startTime)}</Text>
+              {selectedClass.location ? (
+                <Text style={styles.modalSub}>Location: {selectedClass.location}</Text>
+              ) : null}
+              <Text style={styles.modalSub}>Spots left: {selectedClass.spotsLeft ?? 'N/A'}</Text>
+              <Text style={styles.modalSub}>Status: {labelForStatus(selectedClass.status)}</Text>
+              {selectedClassBooked ? (
+                <Text style={styles.modalBookedText}>You have already booked this class.</Text>
+              ) : null}
+
+              <View style={styles.modalActions}>
+                <AppButton
+                  title={selectedClassBookButtonTitle}
+                  onPress={() => onBook(selectedClass.id)}
+                  disabled={
+                    selectedClassBooked ||
+                    bookingClassId !== null ||
+                    selectedClass.spotsLeft === 0 ||
+                    selectedClass.status === 'cancelled'
+                  }
+                />
+                <AppButton title="Close" onPress={() => setSelectedClass(null)} variant="neutral" />
+              </View>
+            </View>
+          ) : null}
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -736,6 +950,11 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 6,
   },
+  viewModeRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 8,
+  },
   filterPill: {
     borderWidth: 1,
     borderColor: '#d1d5db',
@@ -760,6 +979,98 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     fontSize: 12,
     marginBottom: 4,
+  },
+  calendarHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  calendarNavButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  calendarNavButtonText: {
+    fontSize: 18,
+    color: '#111827',
+    fontWeight: '700',
+  },
+  calendarMonthLabel: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#111827',
+  },
+  calendarWeekRow: {
+    flexDirection: 'row',
+    marginBottom: 6,
+  },
+  calendarWeekLabel: {
+    flex: 1,
+    textAlign: 'center',
+    color: '#6b7280',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  calendarGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 8,
+  },
+  calendarCell: {
+    width: '13.6%',
+    aspectRatio: 1,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 4,
+  },
+  calendarCellOutside: {
+    backgroundColor: '#f9fafb',
+    borderColor: '#f3f4f6',
+  },
+  calendarCellSelected: {
+    borderColor: '#111827',
+    backgroundColor: '#111827',
+  },
+  calendarCellDay: {
+    fontSize: 13,
+    color: '#1f2937',
+    fontWeight: '700',
+  },
+  calendarCellDayOutside: {
+    color: '#9ca3af',
+  },
+  calendarCellDayToday: {
+    textDecorationLine: 'underline',
+  },
+  calendarCellDaySelected: {
+    color: '#ffffff',
+  },
+  calendarCountBadge: {
+    marginTop: 4,
+    minWidth: 20,
+    borderRadius: 999,
+    backgroundColor: '#dbeafe',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  calendarCountText: {
+    fontSize: 10,
+    color: '#1d4ed8',
+    fontWeight: '800',
   },
   sectionTitle: {
     fontSize: 17,
@@ -788,6 +1099,19 @@ const styles = StyleSheet.create({
   },
   itemTitle: { fontSize: 18, fontWeight: '700', color: '#111827', flex: 1 },
   itemSub: { fontSize: 13, color: '#4b5563', marginTop: 4 },
+  cardTapArea: {
+    borderRadius: 10,
+    padding: 2,
+  },
+  cardPressed: {
+    opacity: 0.85,
+  },
+  detailsHint: {
+    marginTop: 8,
+    fontSize: 12,
+    color: '#2563eb',
+    fontWeight: '600',
+  },
   bookButtonWrap: { marginTop: 12 },
   bookedBanner: {
     alignSelf: 'flex-start',
@@ -863,6 +1187,53 @@ const styles = StyleSheet.create({
   },
   appButtonTextDisabled: {
     color: '#f3f4f6',
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(15, 23, 42, 0.45)',
+  },
+  modalSheet: {
+    backgroundColor: '#ffffff',
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 22,
+    borderTopWidth: 1,
+    borderColor: '#e5e7eb',
+    gap: 4,
+  },
+  modalHandle: {
+    alignSelf: 'center',
+    width: 42,
+    height: 4,
+    borderRadius: 4,
+    backgroundColor: '#d1d5db',
+    marginBottom: 10,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#111827',
+  },
+  modalSub: {
+    fontSize: 14,
+    color: '#4b5563',
+    marginTop: 4,
+  },
+  modalBookedText: {
+    marginTop: 8,
+    color: '#065f46',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  modalActions: {
+    marginTop: 14,
+    gap: 10,
   },
   error: { color: '#dc2626', paddingHorizontal: 12 },
 });
