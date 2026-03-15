@@ -4,7 +4,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   ActivityIndicator,
   Alert,
-  Button,
   RefreshControl,
   ScrollView,
   SafeAreaView,
@@ -38,6 +37,50 @@ function normalizeStatus(value?: string) {
   return (value ?? '').trim().toLowerCase();
 }
 
+function labelForStatus(value?: string) {
+  const status = normalizeStatus(value);
+  if (status === 'cancelled') return 'Cancelled';
+  if (status === 'active') return 'Active';
+  if (status === 'booked') return 'Booked';
+  return status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Scheduled';
+}
+
+function AppButton({
+  title,
+  onPress,
+  disabled,
+  variant = 'primary',
+}: {
+  title: string;
+  onPress: () => void;
+  disabled?: boolean;
+  variant?: 'primary' | 'neutral' | 'danger';
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      style={({ pressed }) => [
+        styles.appButton,
+        variant === 'neutral' ? styles.appButtonNeutral : null,
+        variant === 'danger' ? styles.appButtonDanger : null,
+        pressed && !disabled ? styles.appButtonPressed : null,
+        disabled ? styles.appButtonDisabled : null,
+      ]}
+    >
+      <Text
+        style={[
+          styles.appButtonText,
+          variant === 'neutral' ? styles.appButtonTextNeutral : null,
+          disabled ? styles.appButtonTextDisabled : null,
+        ]}
+      >
+        {title}
+      </Text>
+    </Pressable>
+  );
+}
+
 export default function App() {
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [activeTab, setActiveTab] = useState<'classes' | 'bookings'>('classes');
@@ -59,6 +102,7 @@ export default function App() {
   const [profileHydrated, setProfileHydrated] = useState(false);
   const activeBookings = myBookings.filter((b) => b.bookingStatus === 'active');
   const activeBookingsCount = activeBookings.length;
+  const activeBookedClassIds = useMemo(() => new Set(activeBookings.map((b) => b.classId)), [activeBookings]);
   const upcomingCount = useMemo(
     () =>
       classes.filter((item) => {
@@ -390,24 +434,29 @@ export default function App() {
             </View>
 
             <View style={styles.controls}>
-              <Button title="Continue" onPress={onSignIn} />
+              <AppButton title="Continue" onPress={onSignIn} />
             </View>
           </View>
         ) : null}
 
         <View style={styles.controls}>
-          <Button title={healthChecking ? 'Checking...' : 'Check connection'} onPress={onCheckConnection} disabled={healthChecking || loading} />
+          <AppButton
+            title={healthChecking ? 'Checking...' : 'Check connection'}
+            onPress={onCheckConnection}
+            disabled={healthChecking || loading}
+            variant="neutral"
+          />
         </View>
 
         {isSignedIn ? (
           <View style={styles.profileRow}>
             <Text style={styles.profileText}>Signed in as {customerName} ({customerEmail})</Text>
-            <Button title="Sign out" onPress={() => setIsSignedIn(false)} />
+            <AppButton title="Sign out" onPress={() => setIsSignedIn(false)} variant="neutral" />
           </View>
         ) : null}
 
         <View style={styles.controls}>
-          <Button title="Clear profile" onPress={onClearProfile} />
+          <AppButton title="Clear profile" onPress={onClearProfile} variant="danger" />
         </View>
 
         <Text style={styles.healthText}>API: {BASE_URL}</Text>
@@ -468,15 +517,52 @@ export default function App() {
             {filteredClasses.length === 0 ? <Text style={styles.emptyText}>No classes in this view.</Text> : null}
             {filteredClasses.map((item) => (
               <View style={styles.card} key={item.id}>
-                <Text style={styles.itemTitle}>{item.title}</Text>
+                {activeBookedClassIds.has(item.id) ? (
+                  <View style={styles.bookedBanner}>
+                    <Text style={styles.bookedBannerText}>Already booked</Text>
+                  </View>
+                ) : null}
+                <View style={styles.cardHeaderRow}>
+                  <Text style={styles.itemTitle}>{item.title}</Text>
+                  <View
+                    style={[
+                      styles.statusChip,
+                      normalizeStatus(item.status) === 'cancelled'
+                        ? styles.statusChipCancelled
+                        : styles.statusChipScheduled,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.statusChipText,
+                        normalizeStatus(item.status) === 'cancelled'
+                          ? styles.statusChipTextCancelled
+                          : styles.statusChipTextScheduled,
+                      ]}
+                    >
+                      {labelForStatus(item.status)}
+                    </Text>
+                  </View>
+                </View>
                 <Text style={styles.itemSub}>{formatDate(item.startTime)}</Text>
                 {item.location ? <Text style={styles.itemSub}>Location: {item.location}</Text> : null}
                 <Text style={styles.itemSub}>Spots left: {item.spotsLeft ?? 'N/A'}</Text>
                 <View style={styles.bookButtonWrap}>
-                  <Button
-                    title={bookingClassId === item.id ? 'Booking...' : 'Book'}
+                  <AppButton
+                    title={
+                      activeBookedClassIds.has(item.id)
+                        ? 'Already booked'
+                        : bookingClassId === item.id
+                          ? 'Booking...'
+                          : 'Book'
+                    }
                     onPress={() => onBook(item.id)}
-                    disabled={bookingClassId !== null || item.spotsLeft === 0 || item.status === 'cancelled'}
+                    disabled={
+                      activeBookedClassIds.has(item.id) ||
+                      bookingClassId !== null ||
+                      item.spotsLeft === 0 ||
+                      item.status === 'cancelled'
+                    }
                   />
                 </View>
               </View>
@@ -491,15 +577,23 @@ export default function App() {
               const canCancel = booking.bookingStatus === 'active' && booking.classStatus !== 'cancelled';
               return (
                 <View style={styles.card} key={booking.id}>
-                  <Text style={styles.itemTitle}>{booking.classTitle}</Text>
+                  <View style={styles.cardHeaderRow}>
+                    <Text style={styles.itemTitle}>{booking.classTitle}</Text>
+                    <View style={[styles.statusChip, styles.statusChipActive]}>
+                      <Text style={[styles.statusChipText, styles.statusChipTextActive]}>
+                        {labelForStatus(booking.bookingStatus)}
+                      </Text>
+                    </View>
+                  </View>
                   <Text style={styles.itemSub}>{formatDate(booking.classStartTime)}</Text>
                   <Text style={styles.itemSub}>Booking status: {booking.bookingStatus}</Text>
                   <Text style={styles.itemSub}>Class status: {booking.classStatus}</Text>
                   <View style={styles.bookButtonWrap}>
-                    <Button
+                    <AppButton
                       title={cancellingBookingId === booking.id ? 'Cancelling...' : 'Cancel booking'}
                       onPress={() => requestCancelBooking(booking)}
                       disabled={!canCancel || cancellingBookingId !== null}
+                      variant="danger"
                     />
                   </View>
                 </View>
@@ -517,47 +611,58 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#f3f4f6',
   },
-  scrollContent: { paddingBottom: 24 },
-  header: { padding: 16, borderBottomWidth: 1, borderColor: '#e2e8f0', backgroundColor: '#fff' },
-  title: { fontSize: 24, fontWeight: '700', color: '#0f172a' },
-  subtitle: { marginTop: 4, color: '#475569' },
+  scrollContent: { paddingBottom: 28 },
+  header: {
+    paddingHorizontal: 16,
+    paddingVertical: 18,
+    borderBottomWidth: 1,
+    borderColor: '#e5e7eb',
+    backgroundColor: '#ffffff',
+  },
+  title: { fontSize: 26, fontWeight: '800', color: '#0f172a', letterSpacing: 0.2 },
+  subtitle: { marginTop: 6, color: '#4b5563', fontSize: 13 },
   loginCard: {
     margin: 12,
-    padding: 12,
+    padding: 14,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 12,
+    borderColor: '#e5e7eb',
+    borderRadius: 14,
     backgroundColor: '#fff',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 1,
   },
   formRow: { padding: 12, gap: 8 },
   input: {
     borderWidth: 1,
-    borderColor: '#cbd5e1',
+    borderColor: '#d1d5db',
     backgroundColor: '#fff',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
-  controls: { padding: 12 },
+  controls: { paddingHorizontal: 12, paddingTop: 10 },
   tabRow: {
     paddingHorizontal: 12,
-    marginTop: 8,
+    marginTop: 10,
     flexDirection: 'row',
     gap: 8,
   },
   tabButton: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#cbd5e1',
-    borderRadius: 10,
-    paddingVertical: 10,
+    borderColor: '#d1d5db',
+    borderRadius: 12,
+    paddingVertical: 11,
     backgroundColor: '#fff',
   },
   tabButtonActive: {
-    backgroundColor: '#0f172a',
-    borderColor: '#0f172a',
+    backgroundColor: '#111827',
+    borderColor: '#111827',
   },
   tabButtonText: {
     textAlign: 'center',
@@ -574,53 +679,54 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   badge: {
-    minWidth: 20,
-    height: 20,
-    borderRadius: 10,
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
     paddingHorizontal: 6,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#e2e8f0',
+    backgroundColor: '#e5e7eb',
   },
   badgeActive: {
     backgroundColor: '#f8fafc',
   },
   badgeText: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#0f172a',
   },
   badgeTextActive: {
     color: '#0f172a',
   },
-  healthText: { paddingHorizontal: 12, color: '#475569', fontSize: 12 },
-  healthStatus: { paddingHorizontal: 12, color: '#0f172a', marginTop: 4 },
+  healthText: { paddingHorizontal: 12, color: '#6b7280', fontSize: 12, marginTop: 8 },
+  healthStatus: { paddingHorizontal: 12, color: '#111827', marginTop: 4, fontWeight: '600' },
   profileRow: {
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 6,
     gap: 8,
   },
   profileText: {
-    color: '#334155',
+    color: '#374151',
+    fontSize: 13,
   },
-  loader: { marginTop: 8 },
-  listContent: { padding: 12, gap: 8 },
+  loader: { marginTop: 10 },
+  listContent: { padding: 12, gap: 10 },
   pullHint: {
-    color: '#64748b',
+    color: '#6b7280',
     fontSize: 12,
-    marginBottom: 2,
+    marginBottom: 4,
   },
   filterRow: {
     flexDirection: 'row',
     gap: 8,
-    marginBottom: 4,
+    marginBottom: 6,
   },
   filterPill: {
     borderWidth: 1,
-    borderColor: '#cbd5e1',
+    borderColor: '#d1d5db',
     borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
     backgroundColor: '#fff',
   },
   filterPillActive: {
@@ -629,33 +735,119 @@ const styles = StyleSheet.create({
   },
   filterPillText: {
     fontSize: 12,
-    color: '#334155',
+    color: '#374151',
     fontWeight: '600',
   },
   filterPillTextActive: {
     color: '#f8fafc',
   },
   filterSummary: {
-    color: '#64748b',
+    color: '#6b7280',
     fontSize: 12,
-    marginBottom: 2,
+    marginBottom: 4,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 17,
+    fontWeight: '800',
     color: '#0f172a',
     marginTop: 6,
   },
-  emptyText: { color: '#64748b' },
+  emptyText: { color: '#6b7280' },
   card: {
-    padding: 12,
+    padding: 13,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 12,
+    borderColor: '#e5e7eb',
+    borderRadius: 14,
     backgroundColor: '#fff',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.04,
+    shadowRadius: 7,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
   },
-  itemTitle: { fontSize: 18, fontWeight: '600', color: '#0f172a' },
-  itemSub: { fontSize: 13, color: '#475569', marginTop: 4 },
-  bookButtonWrap: { marginTop: 10 },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 8,
+  },
+  itemTitle: { fontSize: 18, fontWeight: '700', color: '#111827', flex: 1 },
+  itemSub: { fontSize: 13, color: '#4b5563', marginTop: 4 },
+  bookButtonWrap: { marginTop: 12 },
+  bookedBanner: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#ecfdf5',
+    borderWidth: 1,
+    borderColor: '#a7f3d0',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginBottom: 8,
+  },
+  bookedBannerText: {
+    color: '#065f46',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  statusChip: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  statusChipScheduled: {
+    backgroundColor: '#dbeafe',
+  },
+  statusChipCancelled: {
+    backgroundColor: '#fee2e2',
+  },
+  statusChipActive: {
+    backgroundColor: '#dcfce7',
+  },
+  statusChipText: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  statusChipTextScheduled: {
+    color: '#1d4ed8',
+  },
+  statusChipTextCancelled: {
+    color: '#b91c1c',
+  },
+  statusChipTextActive: {
+    color: '#166534',
+  },
+  appButton: {
+    backgroundColor: '#111827',
+    borderRadius: 12,
+    minHeight: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+  },
+  appButtonNeutral: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+  },
+  appButtonDanger: {
+    backgroundColor: '#dc2626',
+  },
+  appButtonPressed: {
+    opacity: 0.9,
+  },
+  appButtonDisabled: {
+    opacity: 0.5,
+  },
+  appButtonText: {
+    color: '#ffffff',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  appButtonTextNeutral: {
+    color: '#111827',
+  },
+  appButtonTextDisabled: {
+    color: '#f3f4f6',
+  },
   error: { color: '#dc2626', paddingHorizontal: 12 },
 });
