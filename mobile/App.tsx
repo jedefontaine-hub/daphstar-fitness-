@@ -84,7 +84,9 @@ function AppButton({
 export default function App() {
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [activeTab, setActiveTab] = useState<'classes' | 'bookings'>('classes');
-  const [classFilter, setClassFilter] = useState<'upcoming' | 'all' | 'cancelled'>('upcoming');
+  const [classFilter, setClassFilter] = useState<'upcoming' | 'all' | 'cancelled' | 'booked'>(
+    'upcoming'
+  );
   const [loading, setLoading] = useState(false);
   const [bookingsLoading, setBookingsLoading] = useState(false);
   const [healthChecking, setHealthChecking] = useState(false);
@@ -103,6 +105,10 @@ export default function App() {
   const activeBookings = myBookings.filter((b) => b.bookingStatus === 'active');
   const activeBookingsCount = activeBookings.length;
   const activeBookedClassIds = useMemo(() => new Set(activeBookings.map((b) => b.classId)), [activeBookings]);
+  const bookedCount = useMemo(
+    () => classes.filter((item) => activeBookedClassIds.has(item.id)).length,
+    [classes, activeBookedClassIds]
+  );
   const upcomingCount = useMemo(
     () =>
       classes.filter((item) => {
@@ -124,13 +130,14 @@ export default function App() {
         const status = normalizeStatus(item.status);
         if (classFilter === 'all') return true;
         if (classFilter === 'cancelled') return status === 'cancelled';
+        if (classFilter === 'booked') return activeBookedClassIds.has(item.id);
 
         if (status === 'cancelled') return false;
         const start = item.startTime ? new Date(item.startTime).getTime() : Number.NaN;
         if (Number.isNaN(start)) return true;
         return start >= Date.now();
       }),
-    [classes, classFilter]
+    [classes, classFilter, activeBookedClassIds]
   );
 
   async function load() {
@@ -505,6 +512,12 @@ export default function App() {
                 <Text style={[styles.filterPillText, classFilter === 'all' ? styles.filterPillTextActive : null]}>All</Text>
               </Pressable>
               <Pressable
+                style={[styles.filterPill, classFilter === 'booked' ? styles.filterPillActive : null]}
+                onPress={() => setClassFilter('booked')}
+              >
+                <Text style={[styles.filterPillText, classFilter === 'booked' ? styles.filterPillTextActive : null]}>Booked</Text>
+              </Pressable>
+              <Pressable
                 style={[styles.filterPill, classFilter === 'cancelled' ? styles.filterPillActive : null]}
                 onPress={() => setClassFilter('cancelled')}
               >
@@ -512,7 +525,9 @@ export default function App() {
               </Pressable>
             </View>
 
-            <Text style={styles.filterSummary}>Showing {filteredClasses.length} of {classes.length} class(es). Upcoming now: {upcomingCount}. Cancelled: {cancelledCount}.</Text>
+            <Text style={styles.filterSummary}>
+              Showing {filteredClasses.length} of {classes.length} class(es). Upcoming now: {upcomingCount}. Booked: {bookedCount}. Cancelled: {cancelledCount}.
+            </Text>
 
             {filteredClasses.length === 0 ? <Text style={styles.emptyText}>No classes in this view.</Text> : null}
             {filteredClasses.map((item) => (
