@@ -1,0 +1,16 @@
+{
+  "steps": [
+    {
+      "title": "Welcome to Designer",
+      "text": "Visually build mobile screens and export them as JSON or save them to your repo."
+    },
+    {
+      "title": "Edit & Preview",
+      "text": "Drag, resize, and arrange components with touch. Changes are saved locally and can be exported." 
+    },
+    {
+      "title": "Configure Server",
+      "text": "Provide your dev server URL in Settings so the app can save designs into this project." 
+    }
+  ]
+}

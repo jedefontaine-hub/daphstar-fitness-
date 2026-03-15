@@ -1,0 +1,46 @@
+{
+  "meta": {
+    "name": "Simple Home",
+    "platform": "react-native",
+    "width": 390,
+    "height": 844
+  },
+  "components": [
+    {
+      "id": "root",
+      "type": "View",
+      "style": { "flex": 1, "backgroundColor": "#0f172a" },
+      "children": [
+        {
+          "id": "header",
+          "type": "View",
+          "style": { "height": 120, "padding": 24, "justifyContent": "center" },
+          "children": [
+            { "id": "title", "type": "Text", "text": "Daphstar Fitness", "style": { "fontSize": 28, "color": "#ffffff" } },
+            { "id": "subtitle", "type": "Text", "text": "Wellness for Life", "style": { "fontSize": 14, "color": "#cbd5e1" } }
+          ]
+        },
+        {
+          "id": "next-class-card",
+          "type": "View",
+          "style": { "margin": 16, "padding": 18, "backgroundColor": "#172033", "borderRadius": 12 },
+          "children": [
+            { "id": "card-label", "type": "Text", "text": "NEXT CLASS", "style": { "fontSize": 12, "color": "#94a3b8" } },
+            { "id": "card-title", "type": "Text", "text": "Chair Yoga", "style": { "fontSize": 20, "color": "#ffffff", "margin": 8 } },
+            { "id": "view-details", "type": "Button", "text": "View Details", "style": { "height": 44, "backgroundColor": "#34d399", "borderRadius": 8 } }
+          ]
+        },
+        {
+          "id": "nav",
+          "type": "View",
+          "style": { "position": "absolute", "bottom": 20, "left": 20, "right": 20, "height": 64, "flexDirection": "row", "justifyContent": "space-around", "backgroundColor": "transparent" },
+          "children": [
+            { "id": "nav-home", "type": "Text", "text": "Home", "style": { "color": "#34d399" } },
+            { "id": "nav-classes", "type": "Text", "text": "Classes", "style": { "color": "#94a3b8" } },
+            { "id": "nav-bookings", "type": "Text", "text": "Bookings", "style": { "color": "#94a3b8" } }
+          ]
+        }
+      ]
+    }
+  ]
+}

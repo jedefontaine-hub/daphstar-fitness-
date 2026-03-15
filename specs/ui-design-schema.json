@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Mobile App Design Spec",
+  "type": "object",
+  "required": ["meta", "components"],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "platform": { "type": "string", "enum": ["react-native", "flutter", "web"] },
+        "width": { "type": "integer" },
+        "height": { "type": "integer" }
+      },
+      "required": ["name", "platform"]
+    },
+    "components": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/component" }
+    }
+  },
+  "definitions": {
+    "style": {
+      "type": "object",
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "width": { "type": "number" },
+        "height": { "type": "number" },
+        "flex": { "type": "number" },
+        "backgroundColor": { "type": "string" },
+        "borderRadius": { "type": "number" },
+        "padding": { "type": "number" },
+        "margin": { "type": "number" },
+        "alignItems": { "type": "string" },
+        "justifyContent": { "type": "string" },
+        "fontSize": { "type": "number" },
+        "color": { "type": "string" }
+      }
+    },
+    "props": {
+      "type": "object",
+      "properties": {
+        "onPress": { "type": "string" },
+        "resizeMode": { "type": "string" }
+      }
+    },
+    "component": {
+      "type": "object",
+      "required": ["id", "type"],
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string", "enum": ["View", "Text", "Image", "Button", "List"] },
+        "style": { "$ref": "#/definitions/style" },
+        "props": { "$ref": "#/definitions/props" },
+        "text": { "type": "string" },
+        "src": { "type": "string", "format": "uri" },
+        "children": { "type": "array", "items": { "$ref": "#/definitions/component" } }
+      }
+    }
+  }
+}

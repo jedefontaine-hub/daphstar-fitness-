@@ -1,3 +1,31 @@
+import { NextResponse } from 'next/server';
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const password = body && body.password;
+    const expected = process.env.ADMIN_PASSWORD;
+    if (!expected) {
+      return NextResponse.json({ ok: false, error: 'Server not configured' }, { status: 500 });
+    }
+    if (!password || password !== expected) {
+      return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const res = NextResponse.json({ ok: true });
+    // If ADMIN_TOKEN is configured, set the cookie to that token value (server-side token-based session)
+    const token = process.env.ADMIN_TOKEN;
+    if (token) {
+      res.headers.set('Set-Cookie', `admin_auth=${token}; Path=/; HttpOnly; SameSite=Lax; Secure`);
+    } else {
+      // fallback for development: set a simple flag cookie
+      res.headers.set('Set-Cookie', 'admin_auth=1; Path=/; HttpOnly; SameSite=Lax');
+    }
+    return res;
+  } catch (err: any) {
+    return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });
+  }
+}
 import { NextResponse } from "next/server";
 import {
   verifyAdminPassword,
