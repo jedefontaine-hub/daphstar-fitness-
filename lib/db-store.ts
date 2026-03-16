@@ -675,6 +675,51 @@ export type DashboardData = {
   completedPasses: CompletedPass[];
 };
 
+export type SessionPassWalletData = {
+  sessionPass: SessionPassData;
+  completedPasses: CompletedPass[];
+};
+
+export async function getCustomerSessionPassWallet(email: string): Promise<SessionPassWalletData> {
+  const normalizedEmail = email.toLowerCase().trim();
+
+  const customer = await prisma.customer.findUnique({
+    where: { email: normalizedEmail },
+    select: {
+      id: true,
+      sessionPassRemaining: true,
+      sessionPassTotal: true,
+      sessionPassPurchaseDate: true,
+    },
+  });
+
+  const customerId = customer?.id ?? "";
+
+  const sessionPassHistory = customer
+    ? await prisma.sessionPassHistory.findMany({
+        where: { customerId },
+        orderBy: { sessionNumber: "asc" },
+      })
+    : [];
+
+  const completedPasses = customer ? await getCompletedPasses(customer.id) : [];
+
+  return {
+    sessionPass: {
+      remaining: customer?.sessionPassRemaining ?? 10,
+      total: customer?.sessionPassTotal ?? 10,
+      purchaseDate: customer?.sessionPassPurchaseDate?.toISOString() ?? null,
+      history: sessionPassHistory.map((h) => ({
+        id: h.id,
+        sessionNumber: h.sessionNumber,
+        classTitle: h.classTitle,
+        attendedDate: h.attendedDate.toISOString(),
+      })),
+    },
+    completedPasses,
+  };
+}
+
 export async function getCustomerDashboard(email: string): Promise<DashboardData> {
   const normalizedEmail = email.toLowerCase().trim();
   const now = new Date();

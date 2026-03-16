@@ -31,6 +31,38 @@ export type MobileBookingItem = {
   cancelledAt?: string;
 };
 
+export type MobileSessionPassHistoryItem = {
+  id: string;
+  sessionNumber: number;
+  classTitle: string;
+  attendedDate: string;
+};
+
+export type MobileCompletedPassSession = {
+  id: string;
+  sessionNumber: number;
+  classTitle: string;
+  attendedDate: string;
+};
+
+export type MobileCompletedPass = {
+  id: string;
+  purchaseDate: string;
+  completedDate: string;
+  sessionsCount: number;
+  sessions: MobileCompletedPassSession[];
+};
+
+export type MobileSessionPassWallet = {
+  sessionPass: {
+    remaining: number;
+    total: number;
+    purchaseDate: string | null;
+    history: MobileSessionPassHistoryItem[];
+  };
+  completedPasses: MobileCompletedPass[];
+};
+
 function getBaseUrlFromExpoConstants(): string | null {
   try {
     // Classic Expo: debuggerHost contains "192.168.x.y:19000"
@@ -42,7 +74,7 @@ function getBaseUrlFromExpoConstants(): string | null {
       const host = debuggerHost.split(':')[0];
       if (host && host !== 'localhost') return `http://${host}:3000`;
     }
-  } catch (e) {
+  } catch {
     // ignore
   }
   return null;
@@ -137,4 +169,42 @@ export async function cancelMyBooking(cancelToken: string) {
     throw new Error(error);
   }
   return data;
+}
+
+export async function getSessionPassWallet(email: string): Promise<MobileSessionPassWallet> {
+  const normalized = email.trim();
+  if (!normalized) {
+    return {
+      sessionPass: {
+        remaining: 10,
+        total: 10,
+        purchaseDate: null,
+        history: [],
+      },
+      completedPasses: [],
+    };
+  }
+
+  const params = new URLSearchParams({ email: normalized });
+  const res = await fetch(`${BASE_URL}/api/session-pass?${params.toString()}`);
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    const error = typeof data?.error === 'string' ? data.error : 'session_pass_lookup_failed';
+    throw new Error(error);
+  }
+
+  return {
+    sessionPass: {
+      remaining: Number(data?.sessionPass?.remaining ?? 10),
+      total: Number(data?.sessionPass?.total ?? 10),
+      purchaseDate: typeof data?.sessionPass?.purchaseDate === 'string' ? data.sessionPass.purchaseDate : null,
+      history: Array.isArray(data?.sessionPass?.history)
+        ? (data.sessionPass.history as MobileSessionPassHistoryItem[])
+        : [],
+    },
+    completedPasses: Array.isArray(data?.completedPasses)
+      ? (data.completedPasses as MobileCompletedPass[])
+      : [],
+  };
 }

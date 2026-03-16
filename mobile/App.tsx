@@ -19,10 +19,13 @@ import {
   bookClass,
   cancelMyBooking,
   checkApiHealth,
+  getSessionPassWallet,
   listClasses,
   listMyBookings,
+  type MobileCompletedPass,
   type MobileBookingItem,
   type MobileClassItem,
+  type MobileSessionPassWallet,
 } from './api';
 
 const PROFILE_STORAGE_KEY = 'daphstar.mobile.profile';
@@ -62,6 +65,11 @@ function labelForStatus(value?: string) {
   if (status === 'active') return 'Active';
   if (status === 'booked') return 'Booked';
   return status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Scheduled';
+}
+
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) return error.message;
+  return fallback;
 }
 
 function AppButton({
@@ -119,6 +127,8 @@ export default function App() {
   const [selectedClass, setSelectedClass] = useState<MobileClassItem | null>(null);
   const [classes, setClasses] = useState<MobileClassItem[]>([]);
   const [myBookings, setMyBookings] = useState<MobileBookingItem[]>([]);
+  const [sessionPassWallet, setSessionPassWallet] = useState<MobileSessionPassWallet | null>(null);
+  const [sessionPassLoading, setSessionPassLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [customerName, setCustomerName] = useState('Demo Member');
   const [customerEmail, setCustomerEmail] = useState('member@example.com');
@@ -209,6 +219,17 @@ export default function App() {
       });
   }, [classes, selectedCalendarDay]);
   const selectedClassBooked = selectedClass ? activeBookedClassIds.has(selectedClass.id) : false;
+  const sessionPass = sessionPassWallet?.sessionPass ?? null;
+  const completedPasses: MobileCompletedPass[] = sessionPassWallet?.completedPasses ?? [];
+  const sessionsUsed = sessionPass ? Math.max(0, sessionPass.total - sessionPass.remaining) : 0;
+  const usagePercent = sessionPass && sessionPass.total > 0 ? (sessionsUsed / sessionPass.total) * 100 : 0;
+  const isPassLow = sessionPass ? sessionPass.remaining > 0 && sessionPass.remaining <= 2 : false;
+  const isPassEmpty = sessionPass ? sessionPass.remaining <= 0 : false;
+  const latestPassActivity = sessionPass?.history.length
+    ? [...sessionPass.history]
+        .sort((a, b) => new Date(b.attendedDate).getTime() - new Date(a.attendedDate).getTime())
+        .slice(0, 3)
+    : [];
   const selectedClassBookButtonTitle = selectedClass
     ? selectedClassBooked
       ? 'Already booked'
@@ -227,8 +248,8 @@ export default function App() {
     try {
       const data = await listClasses();
       setClasses(data);
-    } catch (err: any) {
-      setError(err?.message ?? 'Failed to load');
+    } catch (err) {
+      setError(getErrorMessage(err, 'Failed to load'));
     } finally {
       setLoading(false);
     }
@@ -250,7 +271,7 @@ export default function App() {
     }
   }
 
-  async function onBook(classId: string) {
+  async function bookClassNow(classId: string) {
     if (!customerName.trim() || !customerEmail.trim()) {
       Alert.alert('Missing details', 'Please enter your name and email first.');
       return;
@@ -266,8 +287,9 @@ export default function App() {
       Alert.alert('Booked', 'Your booking was created successfully.');
       await load();
       await refreshMyBookingsSilently();
-    } catch (err: any) {
-      const apiError = err?.message ?? 'booking_failed';
+      await loadSessionPassWallet(true);
+    } catch (err) {
+      const apiError = getErrorMessage(err, 'booking_failed');
       const friendly =
         apiError === 'already_booked'
           ? 'You already booked this class.'
@@ -282,6 +304,27 @@ export default function App() {
     }
   }
 
+  function onBook(classId: string) {
+    const passSummary = sessionPass
+      ? `You have ${sessionPass.remaining}/${sessionPass.total} sessions left.`
+      : 'Session pass balance will refresh after booking.';
+    const passNote = isPassEmpty
+      ? 'Your pass has no sessions left. You can still reserve a spot, but check-in may require a new pass.'
+      : 'If you attend this class, 1 session will be deducted at check-in.';
+
+    Alert.alert('Confirm booking', `${passSummary}\n\n${passNote}`, [
+      { text: 'Not now', style: 'cancel' },
+      {
+        text: 'Book class',
+        onPress: () => {
+          bookClassNow(classId).catch(() => {
+            // Error handling is already done inside bookClassNow.
+          });
+        },
+      },
+    ]);
+  }
+
   async function onLoadMyBookings() {
     const email = customerEmail.trim();
     if (!email) {
@@ -293,8 +336,8 @@ export default function App() {
     try {
       const bookings = await listMyBookings(email);
       setMyBookings(bookings);
-    } catch (err: any) {
-      const message = err?.message ?? 'Failed to load bookings';
+    } catch (err) {
+      const message = getErrorMessage(err, 'Failed to load bookings');
       Alert.alert('My bookings', message);
     } finally {
       setBookingsLoading(false);
@@ -313,6 +356,31 @@ export default function App() {
     }
   }
 
+  async function loadSessionPassWallet(silent = false) {
+    const email = customerEmail.trim();
+    if (!email) {
+      setSessionPassWallet(null);
+      return;
+    }
+
+    if (!silent) {
+      setSessionPassLoading(true);
+    }
+
+    try {
+      const wallet = await getSessionPassWallet(email);
+      setSessionPassWallet(wallet);
+    } catch {
+      if (!silent) {
+        Alert.alert('Session pass', 'Could not load your session pass wallet right now.');
+      }
+    } finally {
+      if (!silent) {
+        setSessionPassLoading(false);
+      }
+    }
+  }
+
   async function onPullRefresh() {
     if (!isSignedIn) return;
     setIsPullRefreshing(true);
@@ -322,6 +390,7 @@ export default function App() {
       } else {
         await onLoadMyBookings();
       }
+      await loadSessionPassWallet(true);
     } finally {
       setIsPullRefreshing(false);
     }
@@ -334,8 +403,9 @@ export default function App() {
       Alert.alert('Cancelled', 'Your booking was cancelled.');
       await onLoadMyBookings();
       await load();
-    } catch (err: any) {
-      const message = err?.message ?? 'Could not cancel booking';
+      await loadSessionPassWallet(true);
+    } catch (err) {
+      const message = getErrorMessage(err, 'Could not cancel booking');
       Alert.alert('Cancel failed', message);
     } finally {
       setCancellingBookingId(null);
@@ -371,7 +441,7 @@ export default function App() {
       setIsSignedIn(false);
       setMyBookings([]);
       Alert.alert('Profile cleared', 'Saved name and email were removed from this device.');
-    } catch (e) {
+    } catch {
       Alert.alert('Clear failed', 'Could not clear saved profile. Please try again.');
     }
   }
@@ -446,14 +516,13 @@ export default function App() {
     }, 200);
 
     return () => clearTimeout(timer);
-  }, [profileHydrated, customerName, customerEmail]);
+  }, [profileHydrated, customerName, customerEmail, isSignedIn]);
 
   useEffect(() => {
     if (!isSignedIn) return;
     if (activeTab !== 'classes') return;
     // Auto-load classes when user opens the Classes tab.
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, isSignedIn]);
 
   useEffect(() => {
@@ -462,8 +531,19 @@ export default function App() {
     if (!customerEmail.trim()) return;
     // Auto-load bookings when user opens My Bookings with an email entered.
     onLoadMyBookings();
+    loadSessionPassWallet(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, customerEmail, isSignedIn]);
+
+  useEffect(() => {
+    if (!isSignedIn) {
+      setSessionPassWallet(null);
+      return;
+    }
+    if (!customerEmail.trim()) return;
+    loadSessionPassWallet(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSignedIn, customerEmail]);
 
   useEffect(() => {
     if (!isSignedIn) return;
@@ -610,6 +690,82 @@ export default function App() {
 
         <Text style={styles.healthText}>API: {BASE_URL}</Text>
         <Text style={styles.healthStatus}>{healthStatus}</Text>
+
+        {isSignedIn ? (
+          <View style={styles.walletCard}>
+            <View style={styles.walletHeaderRow}>
+              <Text style={styles.walletTitle}>Session pass wallet</Text>
+              {sessionPassLoading ? <ActivityIndicator size="small" /> : null}
+            </View>
+
+            {sessionPass ? (
+              <>
+                <Text style={styles.walletBalance}>
+                  {sessionPass.remaining}/{sessionPass.total}
+                </Text>
+                <Text style={styles.walletSubText}>sessions remaining</Text>
+                {sessionPass.purchaseDate ? (
+                  <Text style={styles.walletMetaText}>
+                    Purchased: {new Date(sessionPass.purchaseDate).toLocaleDateString()}
+                  </Text>
+                ) : null}
+
+                <View style={styles.walletProgressTrack}>
+                  <View
+                    style={[
+                      styles.walletProgressFill,
+                      { width: `${Math.max(0, Math.min(100, usagePercent))}%` },
+                      isPassEmpty ? styles.walletProgressFillEmpty : null,
+                      isPassLow ? styles.walletProgressFillLow : null,
+                    ]}
+                  />
+                </View>
+                <Text style={styles.walletMetaText}>
+                  {sessionsUsed} of {sessionPass.total} sessions used
+                </Text>
+
+                {isPassEmpty ? (
+                  <Text style={styles.walletWarningText}>
+                    Your pass is empty. Purchase a new pass before your next attended class.
+                  </Text>
+                ) : null}
+                {isPassLow ? (
+                  <Text style={styles.walletWarningText}>
+                    Low balance: only {sessionPass.remaining} session
+                    {sessionPass.remaining === 1 ? '' : 's'} left.
+                  </Text>
+                ) : null}
+
+                <Text style={styles.walletSectionLabel}>Recent pass usage</Text>
+                {latestPassActivity.length === 0 ? (
+                  <Text style={styles.walletMetaText}>No attended sessions recorded yet.</Text>
+                ) : (
+                  latestPassActivity.map((entry) => (
+                    <Text key={entry.id} style={styles.walletHistoryText}>
+                      #{entry.sessionNumber} {entry.classTitle} on{' '}
+                      {new Date(entry.attendedDate).toLocaleDateString()}
+                    </Text>
+                  ))
+                )}
+
+                <Text style={styles.walletSectionLabel}>
+                  Completed passes: {completedPasses.length}
+                </Text>
+                {completedPasses.length > 0 ? (
+                  <Text style={styles.walletMetaText}>
+                    Latest completed on{' '}
+                    {new Date(completedPasses[0].completedDate).toLocaleDateString()} ({completedPasses[0].sessionsCount}{' '}
+                    sessions)
+                  </Text>
+                ) : (
+                  <Text style={styles.walletMetaText}>No completed pass history yet.</Text>
+                )}
+              </>
+            ) : (
+              <Text style={styles.walletMetaText}>Wallet data will appear after your profile syncs.</Text>
+            )}
+          </View>
+        ) : null}
 
         {isSignedIn ? <View style={styles.tabRow}>
           <Pressable
@@ -929,6 +1085,74 @@ const styles = StyleSheet.create({
   },
   healthText: { paddingHorizontal: 12, color: '#6b7280', fontSize: 12, marginTop: 8 },
   healthStatus: { paddingHorizontal: 12, color: '#111827', marginTop: 4, fontWeight: '600' },
+  walletCard: {
+    marginHorizontal: 12,
+    marginTop: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    borderRadius: 14,
+    backgroundColor: '#eff6ff',
+    gap: 6,
+  },
+  walletHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  walletTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  walletBalance: {
+    fontSize: 30,
+    lineHeight: 34,
+    fontWeight: '900',
+    color: '#1e3a8a',
+  },
+  walletSubText: {
+    color: '#1e40af',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  walletMetaText: {
+    color: '#334155',
+    fontSize: 12,
+  },
+  walletProgressTrack: {
+    marginTop: 4,
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: '#dbeafe',
+    overflow: 'hidden',
+  },
+  walletProgressFill: {
+    height: '100%',
+    backgroundColor: '#2563eb',
+  },
+  walletProgressFillLow: {
+    backgroundColor: '#d97706',
+  },
+  walletProgressFillEmpty: {
+    backgroundColor: '#dc2626',
+  },
+  walletWarningText: {
+    marginTop: 2,
+    color: '#b45309',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  walletSectionLabel: {
+    marginTop: 6,
+    color: '#0f172a',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  walletHistoryText: {
+    color: '#1f2937',
+    fontSize: 12,
+  },
   profileRow: {
     paddingHorizontal: 12,
     paddingVertical: 6,
